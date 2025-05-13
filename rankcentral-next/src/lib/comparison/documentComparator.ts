@@ -1,55 +1,16 @@
 // src/lib/comparison/documentComparator.ts
+import { encode } from 'gpt-tokenizer';
 import { CriterionEvaluator } from './criterionEvaluator';
 import { PromptGenerator } from './promptGenerator';
-import { encode } from 'gpt-tokenizer';
-
-interface Document {
-	[key: string]: string;
-}
-
-interface Criterion {
-	id: string;
-	name: string;
-	description: string;
-	weight: number;
-	scoringLevels?: Record<number, string>;
-	isCustomPrompt?: boolean;
-}
-
-interface CriterionEvaluation {
-	criterionId?: string;
-	criterionName?: string;
-	documentAScore: number;
-	documentBScore: number;
-	documentAAnalysis?: string;
-	documentBAnalysis?: string;
-	comparativeAnalysis?: string;
-	reasoning?: string;
-	winner: string;
-}
-
-interface ComparisonResult {
-	documentA: string;
-	documentB: string;
-	winner: string;
-	error?: string;
-	evaluationDetails?: {
-		criterionEvaluations: CriterionEvaluation[];
-		overallScores: {
-			documentA: number;
-			documentB: number;
-		};
-		overallWinner: string;
-		explanation: string;
-	};
-	criterionScores?: Record<string, {
-		documentA: number;
-		documentB: number;
-	}>;
-}
+import { 
+	ComparisonResult, 
+	CriterionEvaluation, 
+	Criterion 
+} from './types';
+import { PDFProcessor } from './pdfProcessor';
 
 export class DocumentComparator {
-	documents: Document;
+	documents: Record<string, string>;
 	criteria: Criterion[];
 	openaiApiKey: string;
 	pdfProcessor: any;
@@ -59,10 +20,10 @@ export class DocumentComparator {
 	promptGenerator: PromptGenerator;
 
 	constructor(
-		documents: Document,
+		documents: Record<string, string>,
 		criteria: Criterion[],
 		openaiApiKey: string,
-		pdfProcessor = null,
+		pdfProcessor = new PDFProcessor(),
 		useCustomPrompt = false,
 		modelName = 'gpt-4.1-mini'
 	) {
@@ -104,7 +65,7 @@ export class DocumentComparator {
 			return {
 				documentA: doc1Name,
 				documentB: doc2Name,
-				winner: "Error",
+				winner: null,
 				error: errorMsg,
 				evaluationDetails: {
 					criterionEvaluations: [],
@@ -168,7 +129,7 @@ export class DocumentComparator {
 
 			allCriterionEvaluations.push(criterionEval);
 
-			const winner = criterionEval.winner || 'Tie';
+			const winner = criterionEval.winner;
 			console.log(`    Scores - A: ${docAScore}, B: ${docBScore}, Winner: ${winner}`);
 		}
 
@@ -193,8 +154,7 @@ export class DocumentComparator {
 		const comparisonResult: ComparisonResult = {
 			documentA: doc1Name,
 			documentB: doc2Name,
-			winner: winnerName !== "Tie" ? winnerName : "Tie",
-			error: "N/A",
+			winner: winnerName !== "Tie" ? winnerName : null,
 			evaluationDetails: evaluation,
 			criterionScores: Object.fromEntries(
 				this.criteria.map(criterion => [
@@ -229,7 +189,7 @@ export class DocumentComparator {
 		if (overallWinner === "B") {
 			winnerName = doc2Name;
 		} else if (overallWinner === "Tie") {
-			winnerName = "Tie between documents";
+			winnerName = "Tie";
 		}
 
 		let explanation = "";
@@ -243,7 +203,7 @@ export class DocumentComparator {
 		const winningCriteria: string[] = [];
 		for (const evalItem of criterionEvaluations) {
 			const criterion = evalItem.criterionName || '';
-			const winner = evalItem.winner || '';
+			const winner = evalItem.winner;
 			if (winner === overallWinner && winner !== "Tie" && winner !== "N/A") {
 				winningCriteria.push(criterion);
 			}
