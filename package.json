@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "datepicker": "^0.0.0",
     "gpt-tokenizer": "^2.9.0",
     "mongodb": "^6.16.0",
