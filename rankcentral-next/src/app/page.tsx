@@ -1,12 +1,13 @@
+'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import RankCentralLogo from '@/components/RankCentralLogo';
-import { useNavigate } from 'react-router-dom';
 import { FileText, Settings, BarChart3 } from 'lucide-react';
 
 const Index = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -14,10 +15,10 @@ const Index = () => {
       <header className="bg-white shadow-sm py-4 px-6 flex justify-between items-center">
         <RankCentralLogo size={40} />
         <div className="flex space-x-4">
-          <Button variant="outline" onClick={() => navigate('/documents')}>
+          <Button variant="outline" onClick={() => router.push('/documents')}>
             Login
           </Button>
-          <Button onClick={() => navigate('/documents')}>
+          <Button onClick={() => router.push('/documents')}>
             Get Started
           </Button>
         </div>
@@ -36,7 +37,7 @@ const Index = () => {
             <Button 
               size="lg" 
               className="bg-brand-primary hover:bg-brand-dark text-white px-8 py-6 text-lg"
-              onClick={() => navigate('/documents')}
+              onClick={() => router.push('/documents')}
             >
               Start Ranking Now
             </Button>
@@ -44,7 +45,7 @@ const Index = () => {
               variant="outline" 
               size="lg"
               className="border-brand-primary text-brand-primary hover:bg-brand-light px-8 py-6 text-lg"
-              onClick={() => navigate('/learn-more')}
+              onClick={() => router.push('/learn-more')}
             >
               Learn More
             </Button>
