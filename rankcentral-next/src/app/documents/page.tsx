@@ -11,8 +11,8 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useNavigate } from 'react-router-dom';
 import apiClient, { checkBackendHealth } from '@/lib/api-client';
-import CriteriaForm from '@/components/CriteriaForm';
-import ReportNameInput from '@/components/ReportNameInput';
+import CriteriaForm from '@/components/documents/CriteriaForm';
+import ReportNameInput from '@/components/documents/ReportNameInput';
 
 type Document = {
   id: string;
