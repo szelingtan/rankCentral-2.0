@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import RankCentralLogo from './RankCentralLogo';
 import { Button } from '@/components/ui/button';
 import { BarChart3, FileText, Settings, Home, GitCompare, HelpCircle, LogOut } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
