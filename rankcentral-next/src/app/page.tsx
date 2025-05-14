@@ -1,22 +1,28 @@
-// src/app/page.tsx
-
+"use client";
 import { Button } from "@/components/ui/button";
 import { FileText, Settings, BarChart3, ArrowRight } from 'lucide-react';
 import Link from "next/link";
 import RankCentralLogo from "@/components/RankCentralLogo";
+import { useRouter } from 'next/navigation'
 
 export default function HomePage() {
+	const router = useRouter();
+
+	const handleNavigateLogin = () => {
+		router.push("/login");
+	}
+
 	return (
 		<div className="flex flex-col min-h-screen">
 			{/* Header with logo */}
 			<header className="bg-white shadow-sm py-4 px-6 flex justify-between items-center">
 				<RankCentralLogo size={40} />
 				<div className="flex space-x-4">
-					<Button variant="outline">
-					Login
+					<Button variant="outline" onClick={handleNavigateLogin}>
+						Login
 					</Button>
 					<Button>
-					Get Started
+						Get Started
 					</Button>
 				</div>
 			</header>
