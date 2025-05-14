@@ -19,7 +19,7 @@ export function getReportId(): string {
 export function formatTimestamp(timestamp: string): string {
 	try {
 		const date = new Date(timestamp);
-		return date.toLocaleString('en-US', {
+		return date.toLocaleString('en-US', { // need to change to sg time
 			year: 'numeric',
 			month: 'short',
 			day: '2-digit',
