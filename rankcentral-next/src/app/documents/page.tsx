@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useNavigate } from 'react-router-dom';
-import apiClient, { checkBackendHealth } from '@/lib/api-client';
+import apiClient, { checkBackendHealth } from '@/lib/api-client'; // edit when changed
 import CriteriaForm from '@/components/documents/CriteriaForm';
 import ReportNameInput from '@/components/documents/ReportNameInput';
 
