@@ -1,7 +1,7 @@
 // src/app/page.tsx
 
 import { Button } from "@/components/ui/button";
-import { ArrowRight, FileText, BarChart, FilePlus } from "lucide-react";
+import { FileText, Settings, BarChart3, ArrowRight } from 'lucide-react';
 import Link from "next/link";
 import RankCentralLogo from "@/components/RankCentralLogo";
 
@@ -22,18 +22,17 @@ export default function HomePage() {
 			</header>
 
 			{/* Hero Section */}
-			<section className="px-4 py-20 text-center bg-gradient-to-b from-white to-gray-100">
+			<section className="px-4 py-20 text-center bg-gradient-to-b from-white to-blue-100">
 				<div className="max-w-4xl mx-auto">
-					<h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
+					<h1 className="text-4xl md:text-6xl font-extrabold mb-6 text-brand-dark tracking-tight">
 						<span className="block text-brand-primary">Document Ranking Made Simple</span>
 					</h1>
-					<p className="mt-6 text-lg text-gray-600 max-w-2xl mx-auto">
-						Compare multiple documents easily using AI-driven analysis. Our platform evaluates clarity, relevance,
-						thoroughness, and more to help you identify the best documents.
+					<p className="text-xl md:text-2xl text-gray-600 mb-10 max-w-3xl mx-auto">
+						Compare and rank documents based on customizable criteria or prompts with Artificial Intelligence
 					</p>
 					<div className="mt-10 flex justify-center gap-4">
 						<Link href="/documents/compare">
-							<Button size="lg" className="bg-brand-primary hover:bg-brand-dark">
+							<Button size="lg" variant="outline">
 								Start Comparing
 								<ArrowRight className="ml-2 h-4 w-4" />
 							</Button>
@@ -47,43 +46,48 @@ export default function HomePage() {
 				</div>
 			</section>
 
-			{/* Features Section */}
+			{/* Features section */}
 			<section className="py-16 px-4 bg-white">
-				<div className="max-w-6xl mx-auto">
-					<h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
+				<div className="max-w-7xl mx-auto">
+					<h2 className="text-3xl font-bold text-center mb-12 text-gray-800">How rankCentral Works</h2>
 					<div className="grid md:grid-cols-3 gap-8">
-						<div className="p-6 bg-white rounded-lg shadow-md">
-							<div className="rounded-full bg-brand-light p-3 w-12 h-12 flex items-center justify-center mb-4">
-								<FilePlus className="h-6 w-6 text-brand-primary" />
-							</div>
-							<h3 className="text-xl font-semibold mb-2">Upload Documents</h3>
-							<p className="text-gray-600">
-								Upload your PDFs, text files, or paste content directly. Our system handles various document formats.
-							</p>
+						{/* Feature 1 */}
+						<div className="bg-gray-50 rounded-lg p-6 shadow-sm transition-all hover:shadow-md">
+						<div className="w-12 h-12 bg-brand-light rounded-full flex items-center justify-center mb-4">
+							<FileText className="text-brand-primary h-6 w-6" />
 						</div>
-						<div className="p-6 bg-white rounded-lg shadow-md">
-							<div className="rounded-full bg-brand-light p-3 w-12 h-12 flex items-center justify-center mb-4">
-								<FileText className="h-6 w-6 text-brand-primary" />
-							</div>
-							<h3 className="text-xl font-semibold mb-2">Set Criteria</h3>
-							<p className="text-gray-600">
-								Define custom evaluation criteria or use our defaults. Weight each criterion based on importance.
-							</p>
+						<h3 className="text-xl font-semibold mb-2 text-gray-800">Upload Documents</h3>
+						<p className="text-gray-600">
+							Input your documents directly or upload files in various formats for comparison
+						</p>
 						</div>
-						<div className="p-6 bg-white rounded-lg shadow-md">
-							<div className="rounded-full bg-brand-light p-3 w-12 h-12 flex items-center justify-center mb-4">
-								<BarChart className="h-6 w-6 text-brand-primary" />
-							</div>
-							<h3 className="text-xl font-semibold mb-2">Get Results</h3>
-							<p className="text-gray-600">
-								Our AI analyzes and ranks your documents, providing detailed insights on why certain documents perform better.
-							</p>
+						
+						{/* Feature 2 */}
+						<div className="bg-gray-50 rounded-lg p-6 shadow-sm transition-all hover:shadow-md">
+						<div className="w-12 h-12 bg-brand-light rounded-full flex items-center justify-center mb-4">
+							<Settings className="text-brand-primary h-6 w-6" />
+						</div>
+						<h3 className="text-xl font-semibold mb-2 text-gray-800">Define Criteria</h3>
+						<p className="text-gray-600">
+							Set custom ranking criteria with specific weightage or use our default rubrics
+						</p>
+						</div>
+						
+						{/* Feature 3 */}
+						<div className="bg-gray-50 rounded-lg p-6 shadow-sm transition-all hover:shadow-md">
+						<div className="w-12 h-12 bg-brand-light rounded-full flex items-center justify-center mb-4">
+							<BarChart3 className="text-brand-primary h-6 w-6" />
+						</div>
+						<h3 className="text-xl font-semibold mb-2 text-gray-800">View Results</h3>
+						<p className="text-gray-600">
+							Get comprehensive results with detailed pairwise comparisons powered by AI
+						</p>
 						</div>
 					</div>
 				</div>
 			</section>
 
-			{/* Use Cases Section */}
+			{/* Use Cases Section
 			<section className="py-16 px-4 bg-gray-50">
 				<div className="max-w-6xl mx-auto">
 					<h2 className="text-3xl font-bold text-center mb-12">Use Cases</h2>
@@ -114,27 +118,17 @@ export default function HomePage() {
 						</div>
 					</div>
 				</div>
-			</section>
+			</section> */}
 
-			{/* CTA Section */}
-			<section className="py-16 px-4 bg-brand-primary text-white">
-				<div className="max-w-4xl mx-auto text-center">
-					<h2 className="text-3xl font-bold mb-4">Ready to start comparing documents?</h2>
-					<p className="text-xl mb-8">
-						Our AI-powered platform makes it easy to compare and rank your documents.
-					</p>
-					<Link href="/documents/compare">
-						<Button
-							size="lg"
-							variant="secondary"
-							className="bg-white text-brand-primary hover:bg-gray-100"
-						>
-							Get Started Now
-							<ArrowRight className="ml-2 h-4 w-4" />
-						</Button>
-					</Link>
+			{/* Footer */}
+			<footer className="bg-gray-800 text-white py-8 px-4">
+				<div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
+					<div className="mb-4 md:mb-0">
+						<RankCentralLogo className="text-white" />
+						<p className="text-gray-400 mt-2">© 2025 rankCentral. Central Provident Fund Board.</p>
+					</div>
 				</div>
-			</section>
+			</footer>
 		</div>
 	);
 }
