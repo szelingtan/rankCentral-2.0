@@ -3,16 +3,29 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, FileText, BarChart, FilePlus } from "lucide-react";
 import Link from "next/link";
+import RankCentralLogo from "@/components/RankCentralLogo";
 
 export default function HomePage() {
 	return (
 		<div className="flex flex-col min-h-screen">
+			{/* Header with logo */}
+			<header className="bg-white shadow-sm py-4 px-6 flex justify-between items-center">
+				<RankCentralLogo size={40} />
+				<div className="flex space-x-4">
+					<Button variant="outline">
+					Login
+					</Button>
+					<Button>
+					Get Started
+					</Button>
+				</div>
+			</header>
+
 			{/* Hero Section */}
 			<section className="px-4 py-20 text-center bg-gradient-to-b from-white to-gray-100">
 				<div className="max-w-4xl mx-auto">
 					<h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
-						<span className="block text-brand-primary">Document Comparison</span>
-						<span className="block text-brand-secondary">Powered by AI</span>
+						<span className="block text-brand-primary">Document Ranking Made Simple</span>
 					</h1>
 					<p className="mt-6 text-lg text-gray-600 max-w-2xl mx-auto">
 						Compare multiple documents easily using AI-driven analysis. Our platform evaluates clarity, relevance,
