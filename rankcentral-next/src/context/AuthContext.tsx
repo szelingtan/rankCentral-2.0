@@ -1,3 +1,5 @@
+"use client";
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
@@ -12,7 +14,7 @@ interface AuthContextType {
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
-  getAuthHeaders: () => { Authorization: string } | {};
+  getAuthHeaders: () => string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,8 +26,7 @@ const DUMMY_USER = {
   id: 'dummy-user-id-123'
 };
 
-export   // Helper function to get authorization headers
-const getAuthHeaders = () => {
+export const getAuthHeaders = () => {
   const token = localStorage.getItem('access_token');
   if (token) {
     return token;
