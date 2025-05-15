@@ -15,18 +15,20 @@ export const authOptions: NextAuthOptions = {
 			  password: { label: "Password", type: "password" },
 			},
 			async authorize(credentials) {
-			  const { db } = await connectToDatabase();
-			  const user = await db.collection("users").findOne({ email: credentials?.email });
-		  
-			  if (!user || user.password !== credentials?.password) {
-				throw new Error("Invalid credentials");
-			  }
-		  
-			  return {
-				id: user._id.toString(),
-				email: user.email,
-				name: user.name,
-			  };
+				const { db } = await connectToDatabase();
+				const user = await db.collection("users").findOne({ email: credentials?.email });
+
+				if (!user) {
+					return null;
+				} else {
+					const passwordMatch = await compare(credentials!.password, user.password);
+					if (!passwordMatch) return null;
+					return {
+						id: user._id.toString(),
+						email: user.email,
+						name: user.name,
+					};
+				};
 			},
 		}),
 	],
