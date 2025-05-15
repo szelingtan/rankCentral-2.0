@@ -24,11 +24,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 		const userId = session.user.id;
 		const data = await req.json();
 
+		const id = data.id;
 		const criteriaData = data.criteria || [];
-		const evaluationMethod = data.evaluation_method || 'criteria';
-		const customPrompt = data.custom_prompt || '';
+		const evaluationMethod = data.evaluationMethod || 'criteria';
+		const customPrompt = data.customPrompt || '';
 		const documentsData = data.documents || [];
-		const reportName = data.report_name || '';
+		const reportName = data.reportName || '';
 
 		if (!documentsData || documentsData.length < 2) {
 			return NextResponse.json(
@@ -68,16 +69,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
 		const pdfContents: Record<string, string> = {};
 		for (const doc of documentsData) {
-			const docName = doc.name;
+			console.log(doc)
+			const docName = doc.displayName;
 			const docContent = doc.content;
 
 			if (
-				docContent.startsWith('data:application/pdf;base64,') ||
+				docContent.startsWith('data:application/pdf;base64') ||
 				(docContent.length > 100 && !/^[a-zA-Z]/.test(docContent.trim().substring(0, 20)))
 			) {
 				try {
+					console.log(`Processing base64 PDF: ${docName}`);
 					const extractedText = await pdfProcessor.loadBase64PDF(docName, docContent);
 					pdfContents[docName] = extractedText;
+					console.log(`Loaded base64 PDF: ${docName} (${extractedText.length} characters)`);
 				} catch (e) {
 					console.error(`Error processing base64 PDF: ${e}`);
 					pdfContents[docName] = docContent;
@@ -141,6 +145,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 		}
 
 		return NextResponse.json({
+			success: true,
 			message: "Comparison completed successfully",
 			ranked_documents: results,
 			comparison_details: comparisonEngine.comparisonResults,
