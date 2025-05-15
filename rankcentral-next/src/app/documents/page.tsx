@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { FileText, Trash2, ArrowRight, Upload } from 'lucide-react';
@@ -9,10 +11,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useNavigate } from 'react-router-dom';
-import apiClient, { checkBackendHealth } from '@/lib/api-client'; // edit when changed
+import ApiClient from '@/lib/comparison/apiClient';
 import CriteriaForm from '@/components/documents/CriteriaForm';
 import ReportNameInput from '@/components/documents/ReportNameInput';
+import { EvaluationMethod } from '@/lib/comparison';
+import { useRouter } from 'next/router';
 
 type Document = {
   id: string;
@@ -63,15 +66,15 @@ const Documents = () => {
   const [useCustomCriteria, setUseCustomCriteria] = useState(false);
   const [criteria, setCriteria] = useState<Criterion[]>(defaultCriteria);
   const [activeTab, setActiveTab] = useState('documents');
-  const [evaluationMethod, setEvaluationMethod] = useState('criteria');
+  const [evaluationMethod, setEvaluationMethod] = useState<EvaluationMethod>('criteria');
   const [customPrompt, setCustomPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [documentNames, setDocumentNames] = useState<Record<string, string>>({});
   const [reportName, setReportName] = useState('');
   
-  const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_URL || 'https://rankcentral.onrender.com';
+  const apiClient = new ApiClient();
+  const router = useRouter();
   
   useEffect(() => {
     checkBackendStatus();
@@ -114,13 +117,13 @@ const Documents = () => {
     setBackendStatus('checking');
     
     try {
-      const health = await checkBackendHealth();
+      const health = await apiClient.checkBackendHealth();
       
       if (health.isHealthy) {
         console.log('Backend health check passed:', health.message);
         setBackendStatus('online');
       } else {
-        console.error('Backend health check failed:', health.error);
+        console.error('Backend health check failed:', health.message);
         setBackendStatus('offline');
         showUniqueToast('Backend server is not available. Please start the backend server.');
       }
@@ -260,40 +263,34 @@ const Documents = () => {
     const processingToastId = showUniqueToast('Processing documents. This may take a moment.', 'loading');
 
     try {
-      const requestData = {
-        documents: documents.map(doc => ({
-          id: doc.id,
-          name: doc.displayName,
-          content: doc.content
-        })),
-        compare_method: 'mergesort',
+      // Include the OpenAI API key from localStorage if available
+      const apiKey = localStorage.getItem('openai_api_key');
+      if (!apiKey) {
+        throw new Error('OpenAI API key is missing. Please set it in the settings.');
+      }
+
+      const comparisonOptions = {
         criteria: evaluationMethod === 'criteria' 
           ? (useCustomCriteria ? criteria : defaultCriteria)
           : [],
-        custom_prompt: evaluationMethod === 'prompt' ? customPrompt : '',
-        evaluation_method: evaluationMethod,
-        report_name: reportName || `Report ${new Date().toLocaleTimeString()}`  // Use provided name or generate default
+        evaluationMethod: evaluationMethod,
+        customPrompt: evaluationMethod === 'prompt' ? customPrompt : undefined,
+        reportName: reportName || `Report ${new Date().toLocaleTimeString()}`  // Use provided name or generate default
       };
 
       console.log('Sending comparison request:', {
-        ...requestData,
-        documents: requestData.documents.map(d => ({
+        ...comparisonOptions,
+        documents: documents.map(d => ({
           ...d,
           content: d.content.length > 50 ? `${d.content.substring(0, 50)}... (${d.content.length} chars)` : d.content
         }))
       });
       
-      // Include the OpenAI API key from localStorage if available
-      const apiKey = localStorage.getItem('openai_api_key');
-      if (apiKey) {
-        requestData['api_key'] = apiKey;
-      }
+      const response = await apiClient.compareDocuments(documents, comparisonOptions);
       
-      const response = await apiClient.post('/compare-documents', requestData);
-      
-      if (response.data) {
+      if (response.success) {
         showUniqueToast('Analysis complete. Your comparison report is ready.', 'success');
-        navigate('/results');
+        router.push('/results');
       }
     } catch (error: any) {
       console.error('Error comparing documents:', error);
@@ -430,7 +427,7 @@ const Documents = () => {
               <CardContent>
                 <RadioGroup 
                   value={evaluationMethod} 
-                  onValueChange={setEvaluationMethod}
+                  onValueChange={(value) => setEvaluationMethod(value as EvaluationMethod)}
                   className="mb-6 space-y-4"
                 >
                   <div className="flex items-center space-x-2 border p-4 rounded-md">

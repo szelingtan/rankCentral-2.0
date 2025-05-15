@@ -4,7 +4,7 @@ import { ComparisonOptions, ComparisonResult, Document, ReportData } from './typ
 /**
  * Client for making API calls to the document comparison backend
  */
-export class ApiClient {
+export default class ApiClient {
 	private baseUrl: string;
 
 	constructor(baseUrl: string = '/api') {
@@ -36,40 +36,6 @@ export class ApiClient {
 			console.error('Error uploading documents:', error);
 			throw error;
 		}
-	}
-
-	/**
-	 * Convert uploaded files to base64 for client-side processing
-	 */
-	async convertFilesToBase64(files: File[]): Promise<Document[]> {
-		try {
-			const documents: Document[] = [];
-
-			for (const file of files) {
-				const content = await this.fileToBase64(file);
-				documents.push({
-					name: file.name,
-					content
-				});
-			}
-
-			return documents;
-		} catch (error) {
-			console.error('Error converting files to base64:', error);
-			throw error;
-		}
-	}
-
-	/**
-	 * Convert a file to base64
-	 */
-	private fileToBase64(file: File): Promise<string> {
-		return new Promise((resolve, reject) => {
-			const reader = new FileReader();
-			reader.readAsDataURL(file);
-			reader.onload = () => resolve(reader.result as string);
-			reader.onerror = error => reject(error);
-		});
 	}
 
 	/**
@@ -207,6 +173,22 @@ export class ApiClient {
 			return await response.json();
 		} catch (error) {
 			console.error('Error updating report name:', error);
+			throw error;
+		}
+	}
+
+	async checkBackendHealth(): Promise<{ isHealthy: boolean; message: string }> {
+		try {
+			const response = await fetch(`${this.baseUrl}/health`);
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Backend health check failed');
+			}
+
+			return await response.json();
+		} catch (error) {
+			console.error('Error checking backend health:', error);
 			throw error;
 		}
 	}
