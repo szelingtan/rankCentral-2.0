@@ -1,4 +1,5 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 import { FileText, Settings, BarChart3, ArrowRight } from 'lucide-react';
 import Link from "next/link";
@@ -22,7 +23,7 @@ export default function HomePage() {
 						Login
 					</Button>
 					<Button>
-						Get Started
+					Get Started
 					</Button>
 				</div>
 			</header>

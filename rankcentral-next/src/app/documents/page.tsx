@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -15,7 +15,8 @@ import ApiClient from '@/lib/comparison/apiClient';
 import CriteriaForm from '@/components/documents/CriteriaForm';
 import ReportNameInput from '@/components/documents/ReportNameInput';
 import { EvaluationMethod } from '@/lib/comparison';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
+import { v4 as uuidv4 } from 'uuid';
 
 type Document = {
   id: string;
@@ -69,7 +70,7 @@ const Documents = () => {
   const [evaluationMethod, setEvaluationMethod] = useState<EvaluationMethod>('criteria');
   const [customPrompt, setCustomPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  // const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [documentNames, setDocumentNames] = useState<Record<string, string>>({});
   const [reportName, setReportName] = useState('');
   
@@ -77,7 +78,7 @@ const Documents = () => {
   const router = useRouter();
   
   useEffect(() => {
-    checkBackendStatus();
+    // checkBackendStatus();
   }, []);
 
   const showUniqueToast = (message: string, type = 'error') => {
@@ -113,26 +114,26 @@ const Documents = () => {
     return toastId;
   };
 
-  const checkBackendStatus = async () => {
-    setBackendStatus('checking');
+  // const checkBackendStatus = async () => {
+  //   setBackendStatus('checking');
     
-    try {
-      const health = await apiClient.checkBackendHealth();
+  //   try {
+  //     const health = await apiClient.checkBackendHealth();
       
-      if (health.isHealthy) {
-        console.log('Backend health check passed:', health.message);
-        setBackendStatus('online');
-      } else {
-        console.error('Backend health check failed:', health.message);
-        setBackendStatus('offline');
-        showUniqueToast('Backend server is not available. Please start the backend server.');
-      }
-    } catch (error) {
-      console.error("Backend health check error:", error);
-      setBackendStatus('offline');
-      showUniqueToast('Backend server is not available. Please start the backend server.');
-    }
-  };
+  //     if (health.isHealthy) {
+  //       console.log('Backend health check passed:', health.message);
+  //       setBackendStatus('online');
+  //     } else {
+  //       console.error('Backend health check failed:', health.message);
+  //       setBackendStatus('offline');
+  //       showUniqueToast('Backend server is not available. Please start the backend server.');
+  //     }
+  //   } catch (error) {
+  //     console.error("Backend health check error:", error);
+  //     setBackendStatus('offline');
+  //     showUniqueToast('Backend server is not available. Please start the backend server.');
+  //   }
+  // };
 
   const removeDocument = (id: string) => {
     if (documents.length <= 2) {
@@ -170,19 +171,19 @@ const Documents = () => {
     setIsLoading(true);
   
     try {
-      if (backendStatus === 'offline') {
-        await checkBackendStatus();
-        if (backendStatus === 'offline') {
-          throw new Error("Backend server is not available");
-        }
-      }
+      // if (backendStatus === 'offline') {
+      //   await checkBackendStatus();
+      //   if (backendStatus === 'offline') {
+      //     throw new Error("Backend server is not available");
+      //   }
+      // }
   
       const newDocuments = [...documents];
   
       await Promise.all(files.map(async (file, index) => {
         if (file.type === 'application/pdf') {
           const base64Content = await fileToBase64(file);
-          const currDocId = docId || (documents.length + index + 1).toString(); // Ensure unique ID for each file
+          const currDocId = docId || uuidv4(); // Ensure unique ID for each file
   
           updateDocument(currDocId, 'content', base64Content);
   
@@ -246,18 +247,18 @@ const Documents = () => {
       return;
     }
 
-    if (backendStatus === 'offline') {
-      try {
-        await checkBackendStatus();
-        if (backendStatus === 'offline') {
-          showUniqueToast('Cannot connect to the backend server.');
-          return;
-        }
-      } catch (error) {
-        showUniqueToast('Cannot connect to the backend server.');
-        return;
-      }
-    }
+    // if (backendStatus === 'offline') {
+    //   try {
+    //     await checkBackendStatus();
+    //     if (backendStatus === 'offline') {
+    //       showUniqueToast('Cannot connect to the backend server.');
+    //       return;
+    //     }
+    //   } catch (error) {
+    //     showUniqueToast('Cannot connect to the backend server.');
+    //     return;
+    //   }
+    // }
 
     setIsLoading(true);
     const processingToastId = showUniqueToast('Processing documents. This may take a moment.', 'loading');
