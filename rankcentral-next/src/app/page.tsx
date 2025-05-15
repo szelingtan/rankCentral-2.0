@@ -5,12 +5,19 @@ import { FileText, Settings, BarChart3, ArrowRight } from 'lucide-react';
 import Link from "next/link";
 import RankCentralLogo from "@/components/RankCentralLogo";
 import { useRouter } from 'next/navigation'
+import { useSession, signIn, signOut } from "next-auth/react";
 
 export default function HomePage() {
 	const router = useRouter();
+	const { data: session, status } = useSession();
 
 	const handleNavigateLogin = () => {
 		router.push("/login");
+	}
+
+	const handleSignOut = () => {
+		signOut({ redirect: false });
+		router.push("/");
 	}
 
 	return (
@@ -19,11 +26,18 @@ export default function HomePage() {
 			<header className="bg-white shadow-sm py-4 px-6 flex justify-between items-center">
 				<RankCentralLogo size={40} />
 				<div className="flex space-x-4">
-					<Button variant="outline" onClick={handleNavigateLogin}>
-						Login
-					</Button>
+					{/* Check if user is logged in */}
+					{!session ? (
+						<Button variant="outline" onClick={handleNavigateLogin}>
+							Login
+						</Button>
+						) : (
+						<Button variant="outline" onClick={handleSignOut}>
+							Logout
+						</Button>
+						)}
 					<Button>
-					Get Started
+						Get Started
 					</Button>
 				</div>
 			</header>
