@@ -1,22 +1,21 @@
-"use client";
+'use client';
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/AuthContext';
 import RankCentralLogo from '@/components/RankCentralLogo';
 import { Eye, EyeOff } from 'lucide-react';
+import Link from  'next/link';
+import { signIn } from "next-auth/react";
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,11 +33,24 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      await login(email, password);
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
+      const res = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
       });
+
+      if (res?.ok) {
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        })
+      } else {
+        toast({
+          title: "Login failed",
+          description: res?.error || "Invalid email or password",
+          variant: "destructive",
+        });
+      }
     } catch (error: any) {
       let errorMessage = "Invalid email or wrong password";
       
@@ -90,7 +102,7 @@ const Login = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <Link to="/forgot-password" className="text-sm text-brand-primary hover:underline">
+                <Link href="/forgot-password" className="text-sm text-brand-primary hover:underline">
                   Forgot password?
                 </Link>
               </div>
@@ -125,7 +137,7 @@ const Login = () => {
         <CardFooter className="flex flex-col">
           <div className="text-center text-sm text-gray-600 mt-2">
             Don't have an account?{" "}
-            <Link to="/register" className="text-brand-primary hover:underline font-medium">
+            <Link href="/register" className="text-brand-primary hover:underline font-medium">
               Sign up
             </Link>
           </div>
