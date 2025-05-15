@@ -46,7 +46,6 @@ export default class ApiClient {
 		options: ComparisonOptions
 	): Promise<{ success: boolean; results: ComparisonResult[]; ranking: string[] }> {
 		try {
-			console.log('base url:', this.baseUrl);
 			const response = await fetch(`${this.baseUrl}/documents/compare-documents`, {
 				method: 'POST',
 				headers: {

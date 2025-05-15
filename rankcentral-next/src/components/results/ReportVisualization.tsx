@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart2, ListOrdered, Download } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import apiClient from '@/lib/api-client';
+import apiClient from '@/lib/comparison/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import ExportTab from './ExportTab';
 

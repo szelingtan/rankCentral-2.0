@@ -114,27 +114,6 @@ const Documents = () => {
     return toastId;
   };
 
-  // const checkBackendStatus = async () => {
-  //   setBackendStatus('checking');
-    
-  //   try {
-  //     const health = await apiClient.checkBackendHealth();
-      
-  //     if (health.isHealthy) {
-  //       console.log('Backend health check passed:', health.message);
-  //       setBackendStatus('online');
-  //     } else {
-  //       console.error('Backend health check failed:', health.message);
-  //       setBackendStatus('offline');
-  //       showUniqueToast('Backend server is not available. Please start the backend server.');
-  //     }
-  //   } catch (error) {
-  //     console.error("Backend health check error:", error);
-  //     setBackendStatus('offline');
-  //     showUniqueToast('Backend server is not available. Please start the backend server.');
-  //   }
-  // };
-
   const removeDocument = (id: string) => {
     if (documents.length <= 2) {
       showUniqueToast('Cannot remove. You need at least two documents for comparison.');
@@ -171,12 +150,6 @@ const Documents = () => {
     setIsLoading(true);
   
     try {
-      // if (backendStatus === 'offline') {
-      //   await checkBackendStatus();
-      //   if (backendStatus === 'offline') {
-      //     throw new Error("Backend server is not available");
-      //   }
-      // }
   
       const newDocuments = [...documents];
   
@@ -247,19 +220,6 @@ const Documents = () => {
       return;
     }
 
-    // if (backendStatus === 'offline') {
-    //   try {
-    //     await checkBackendStatus();
-    //     if (backendStatus === 'offline') {
-    //       showUniqueToast('Cannot connect to the backend server.');
-    //       return;
-    //     }
-    //   } catch (error) {
-    //     showUniqueToast('Cannot connect to the backend server.');
-    //     return;
-    //   }
-    // }
-
     setIsLoading(true);
     const processingToastId = showUniqueToast('Processing documents. This may take a moment.', 'loading');
 
@@ -282,10 +242,10 @@ const Documents = () => {
       });
       
       const response = await apiClient.compareDocuments(documents, comparisonOptions);
+      console.log(response)
       
       if (response.success) {
         showUniqueToast('Analysis complete. Your comparison report is ready.', 'success');
-        router.push('/results');
       }
     } catch (error: any) {
       console.error('Error comparing documents:', error);

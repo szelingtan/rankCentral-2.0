@@ -5,11 +5,11 @@ import { FileText, Settings, BarChart3, ArrowRight } from 'lucide-react';
 import Link from "next/link";
 import RankCentralLogo from "@/components/RankCentralLogo";
 import { useRouter } from 'next/navigation'
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 export default function HomePage() {
 	const router = useRouter();
-	const { data: session, status } = useSession();
+	const { data: session } = useSession();
 
 	const handleNavigateLogin = () => {
 		router.push("/login");
