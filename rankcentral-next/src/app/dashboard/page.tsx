@@ -40,13 +40,15 @@ async function getReports(userId: string) {
 		.toArray();
 
 	// Format timestamps and other data for display
-	const formattedReports = reports.map(report => ({
+	return reports.map(report => ({
 		...report,
 		formatted_timestamp: formatTimestamp(report.timestamp),
-		document_count: report.documents?.length || 0
+		document_count: report.documents?.length || 0,
+		report_id: report.report_id,
+		report_name: report.report_name,
+		timestamp: report.timestamp,
+		evaluation_method: report.evaluation_method
 	}));
-
-	return formattedReports;
 }
 
 async function getStats(userId: string) {
