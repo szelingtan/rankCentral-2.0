@@ -1,5 +1,5 @@
 // src/lib/comparison/apiClient.ts
-import { ComparisonOptions, ComparisonResult, Document, ReportData } from './types';
+import { ComparisonOptions, ComparisonResult, Document } from './types';
 
 /**
  * Client for making API calls to the document comparison backend
@@ -46,7 +46,8 @@ export default class ApiClient {
 		options: ComparisonOptions
 	): Promise<{ success: boolean; results: ComparisonResult[]; ranking: string[] }> {
 		try {
-			const response = await fetch(`${this.baseUrl}/documents/compare`, {
+			console.log('base url:', this.baseUrl);
+			const response = await fetch(`${this.baseUrl}/documents/compare-documents`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',

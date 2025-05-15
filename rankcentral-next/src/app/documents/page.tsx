@@ -74,7 +74,7 @@ const Documents = () => {
   const [documentNames, setDocumentNames] = useState<Record<string, string>>({});
   const [reportName, setReportName] = useState('');
   
-  const apiClient = new ApiClient();
+  const apiClient = new ApiClient('/api');
   const router = useRouter();
   
   useEffect(() => {
@@ -264,12 +264,6 @@ const Documents = () => {
     const processingToastId = showUniqueToast('Processing documents. This may take a moment.', 'loading');
 
     try {
-      // Include the OpenAI API key from localStorage if available
-      const apiKey = localStorage.getItem('openai_api_key');
-      if (!apiKey) {
-        throw new Error('OpenAI API key is missing. Please set it in the settings.');
-      }
-
       const comparisonOptions = {
         criteria: evaluationMethod === 'criteria' 
           ? (useCustomCriteria ? criteria : defaultCriteria)

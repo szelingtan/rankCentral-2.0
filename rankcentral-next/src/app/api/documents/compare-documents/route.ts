@@ -9,12 +9,12 @@ import { PDFProcessor } from '@/lib/comparison/pdfProcessor';
 import { CriteriaManager } from '@/lib/comparison/criteriaManager';
 import { ComparisonEngine } from '@/lib/comparison/comparisonEngine';
 import { getUploadDir } from '@/lib/utils/file-utils';
-import { db } from '@/lib/db/mongodb';
+import { connectToDatabase } from '@/lib/db/mongodb';
 import { getReportId } from '@/lib/utils/report-utils';
 
-const uploadDir = getUploadDir();
+const uploadDir = await getUploadDir();
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
 	try {
 		const session = await getServerSession(authOptions);
 		if (!session?.user) {
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 			fs.mkdirSync(userUploadDir, { recursive: true });
 		}
 
-		const pdfProcessor = new PDFProcessor(userUploadDir);
+		const pdfProcessor = new PDFProcessor();
 		const criteriaManager = new CriteriaManager();
 
 		if (evaluationMethod === 'criteria') {
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 				name: "Custom Evaluation",
 				description: customPrompt,
 				weight: 100,
-				is_custom_prompt: true
+				isCustomPrompt: true
 			}];
 		}
 
@@ -100,10 +100,11 @@ export async function POST(req: NextRequest) {
 
 		const reportId = getReportId();
 		const timestamp = new Date().toISOString();
+		const conn = await connectToDatabase();
 
-		if (db) {
+		if (conn) {
 			try {
-				const reportsCollection = db.collection('reports');
+				const reportsCollection = conn.db.collection('reports');
 
 				const apiKeyStatus = apiKey.length > 20
 					? "Valid API key"
@@ -142,7 +143,7 @@ export async function POST(req: NextRequest) {
 		return NextResponse.json({
 			message: "Comparison completed successfully",
 			ranked_documents: results,
-			comparison_details: comparisonEngine.comparison_results,
+			comparison_details: comparisonEngine.comparisonResults,
 			report_id: reportId
 		});
 	} catch (error) {
