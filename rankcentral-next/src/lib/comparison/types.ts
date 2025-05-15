@@ -1,8 +1,10 @@
 // src/lib/comparison/types.ts
 
 export interface Document {
-	name: string;
+	id: string;
 	content: string;
+	displayName?: string;
+	fileSize?: string;
 }
 
 export interface ScoringLevel {
@@ -14,7 +16,7 @@ export interface Criterion {
 	name: string;
 	description: string;
 	weight: number;
-	scoringLevels: ScoringLevel;
+	scoringLevels?: ScoringLevel;
 	isCustomPrompt?: boolean;
 }
 

@@ -37,7 +37,7 @@ export default function HomePage() {
 						Compare and rank documents based on customizable criteria or prompts with Artificial Intelligence
 					</p>
 					<div className="mt-10 flex justify-center gap-4">
-						<Link href="/documents/compare">
+						<Link href="/documents">
 							<Button size="lg" variant="outline">
 								Start Comparing
 								<ArrowRight className="ml-2 h-4 w-4" />

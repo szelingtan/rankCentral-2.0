@@ -14,7 +14,8 @@ export { PromptGenerator } from './promptGenerator';
 export { CriteriaManager } from './criteriaManager';
 export { ReportGenerator } from './reportGenerator';
 export { ComparisonDataProcessor } from './dataProcessor';
-export { ApiClient } from './apiClient';
+import ApiClient from './apiClient';
+export { ApiClient };
 
 // Utility functions
 export { mergesortWithComparator, mergeWithComparator, MergesortRanker } from './mergesortRanking';
