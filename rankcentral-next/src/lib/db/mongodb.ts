@@ -4,7 +4,6 @@ import { MongoClient, Db } from 'mongodb';
 
 // MongoDB connection string from environment variables
 const MONGODB_URI = process.env.MONGODB_URI || '';
-console.log('MONGODB_URI:', MONGODB_URI);
 const MONGODB_DB = process.env.MONGODB_DB || 'document-comparison';
 
 // Global variable to store the MongoDB client between requests
