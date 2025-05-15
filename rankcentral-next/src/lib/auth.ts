@@ -22,11 +22,14 @@ export const authOptions: NextAuthOptions = {
 					return null;
 				} else {
 					const passwordMatch = await compare(credentials!.password, user.password);
-					if (!passwordMatch) return null;
+					if (!passwordMatch) {
+						return null;
+					}
 					return {
 						id: user._id.toString(),
 						email: user.email,
 						name: user.name,
+						role: user.role, // Ensure role is included
 					};
 				};
 			},
