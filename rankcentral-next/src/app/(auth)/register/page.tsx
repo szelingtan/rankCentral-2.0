@@ -81,11 +81,11 @@ const Register = () => {
         redirect: false,
         email,
         password,
-        callbackUrl: '/projects'
+        callbackUrl: '/dashboard'
       });
 
       if (signInResult?.ok) {
-        router.push('/projects');
+        router.push('/dashboard');
       } else {
         toast({
           title: 'Login failed',

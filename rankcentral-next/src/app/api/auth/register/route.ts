@@ -1,26 +1,22 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db/mongodb';
 import bcrypt from 'bcrypt';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
-
-  const { email, password, name } = req.body;
-  console.log(req.body);
-
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Email and password are required' });
-  }
-
+export async function POST(req: NextRequest) {
   try {
+    const body = await req.json();
+    const { email, password, name } = body;
+
+    if (!email || !password) {
+      return NextResponse.json({ message: 'Email and password are required' }, { status: 400 });
+    }
+
     const { db } = await connectToDatabase();
 
     // Check if user already exists
     const existingUser = await db.collection('users').findOne({ email });
     if (existingUser) {
-      return res.status(409).json({ message: 'User already exists' });
+      return NextResponse.json({ message: 'User already exists' }, { status: 409 });
     }
 
     // Hash password
@@ -45,9 +41,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    return res.status(201).json({ message: 'User registered successfully', userId: result.insertedId.toString() });
+    return NextResponse.json({ message: 'User registered successfully', userId: result.insertedId.toString() }, { status: 201 });
   } catch (error) {
     console.error('Registration error:', error);
-    return res.status(500).json({ message: 'Something went wrong' });
+    return NextResponse.json({ message: 'Something went wrong' }, { status: 500 });
   }
 }
