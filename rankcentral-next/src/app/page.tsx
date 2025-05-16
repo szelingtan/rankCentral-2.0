@@ -105,6 +105,14 @@ export default function HomePage() {
 						</p>
 						</div>
 					</div>
+					<div className="mt-10 text-center">
+						<Link href="/learn-more">
+							<Button variant="link" className="text-brand-primary font-medium">
+								Learn More About RankCentral
+								<ArrowRight className="ml-2 h-4 w-4" />
+							</Button>
+						</Link>
+					</div>
 				</div>
 			</section>
 
@@ -147,6 +155,12 @@ export default function HomePage() {
 					<div className="mb-4 md:mb-0">
 						<RankCentralLogo className="text-white" />
 						<p className="text-gray-400 mt-2">© 2025 rankCentral. Central Provident Fund Board.</p>
+					</div>
+					<div className="flex gap-6">
+						<Link href="/" className="text-gray-300 hover:text-white">Home</Link>
+						<Link href="/documents" className="text-gray-300 hover:text-white">Compare</Link>
+						<Link href="/dashboard" className="text-gray-300 hover:text-white">Dashboard</Link>
+						<Link href="/learn-more" className="text-gray-300 hover:text-white">Learn More</Link>
 					</div>
 				</div>
 			</footer>

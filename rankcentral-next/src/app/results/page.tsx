@@ -7,7 +7,6 @@ import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
-import apiClient from '@/lib/comparison/apiClient';
 import Link from 'next/link';
 
 type EvaluationReport = {
@@ -24,48 +23,24 @@ type EvaluationReport = {
 const Results = () => {
   const [pastReports, setPastReports] = useState<EvaluationReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [backendError, setBackendError] = useState<string | null>(null);
   const { toast: uiToast } = useToast();
-  const apiUrl = import.meta.env.VITE_API_URL || 'https://rankcentral.onrender.com';
-  
-  const checkBackend = async () => {
-    try {
-      const health = await checkBackendHealth();
-      return health.isHealthy;
-    } catch (error) {
-      return false;
-    }
-  };
   
   const fetchReports = async () => {
     setIsLoading(true);
-    setBackendError(null);
     
     try {
-      // Check if backend is available first
-      const backendAvailable = await checkBackend();
+      // Use Next.js API route to fetch reports
+      const response = await fetch('/api/reports/history');
       
-      if (!backendAvailable) {
-        setBackendError(`Cannot connect to backend server at ${apiUrl}. Make sure it is running.`);
-        setPastReports([]);
-        setIsLoading(false);
-        toast.error(`Cannot connect to the backend server at ${apiUrl}.`);
-        uiToast({
-          title: "Backend unavailable",
-          description: `Cannot connect to the backend server at ${apiUrl}.`,
-          variant: "destructive",
-        });
-        return;
+      if (!response.ok) {
+        throw new Error(`Failed to fetch reports: ${response.statusText}`);
       }
       
-      // If backend is available, get the reports
-      console.log('Fetching report history...');
-      const response = await apiClient.get('/report-history');
-      console.log('Report history response:', response.data);
+      const data = await response.json();
       
       // Make sure each report has the correct document format
-      const formattedReports = Array.isArray(response.data) 
-        ? response.data.map((report: any) => ({
+      const formattedReports = Array.isArray(data.reports) 
+        ? data.reports.map((report: any) => ({
             ...report,
             // Ensure documents array is complete
             documents: Array.isArray(report.documents) ? report.documents : [],
@@ -88,11 +63,10 @@ const Results = () => {
     } catch (error: any) {
       console.error('Error fetching reports:', error);
       setPastReports([]);
-      setBackendError(`Error loading reports: ${error.message || "Unknown error"}`);
-      toast.error('Error loading reports from the backend.');
+      toast.error('Error loading reports.');
       uiToast({
         title: "Unable to load reports",
-        description: `There was an error loading past reports. Make sure the backend server is running.`,
+        description: `There was an error loading past reports: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -120,7 +94,7 @@ const Results = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Report History</h1>
             <div className="flex mt-2">
-              <Link to="/projects" className="text-brand-primary hover:underline flex items-center gap-1">
+              <Link href="/projects" className="text-brand-primary hover:underline flex items-center gap-1">
                 <span>View Projects</span>
               </Link>
             </div>
@@ -136,26 +110,6 @@ const Results = () => {
           </Button>
         </div>
 
-        {backendError && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-6 rounded relative" role="alert">
-            <strong className="font-bold">Backend connection error: </strong>
-            <span className="block sm:inline">{backendError}</span>
-            <p className="mt-2 font-medium">Steps to fix:</p>
-            <p className="mt-1">1. Run <code className="bg-gray-200 px-1 py-0.5 rounded">./run_backend.sh</code> or <code className="bg-gray-200 px-1 py-0.5 rounded">python backend/api.py</code> in your terminal</p>
-            <p className="mt-1">2. Backend URL: <code className="bg-gray-200 px-1 py-0.5 rounded">{apiUrl}</code></p>
-            <p className="mt-1">3. Check terminal for any errors</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={fetchReports}
-            >
-              <RefreshCw className="h-3 w-3 mr-2" />
-              Try Again
-            </Button>
-          </div>
-        )}
-
         <div className="mt-4">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-md">
@@ -164,12 +118,12 @@ const Results = () => {
             </div>
           ) : pastReports.length > 0 ? (
             <PastReports reports={pastReports} onRenameReport={handleRenameReport}/>
-          ) : !backendError ? (
+          ) : (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
               <p className="text-lg text-gray-600">No comparison reports found</p>
               <p className="text-gray-500 mt-2">Compare some documents to generate reports</p>
             </div>
-          ) : null}
+          )}
         </div>
       </div>
     </Layout>

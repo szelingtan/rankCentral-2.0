@@ -1,40 +1,61 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BarChart2, ListOrdered, Download } from "lucide-react";
+import { BarChart2, ListOrdered, Download, Edit, Check } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import apiClient from '@/lib/comparison/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import ExportTab from './ExportTab';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { updateReportName } from '@/lib/evaluations';
 
 interface ReportVisualizationProps {
   timestamp: string;
   reportName?: string;
   documents: string[];
+  onReportNameUpdate?: (timestamp: string, newName: string) => void;
 }
 
-const ReportVisualization = ({ timestamp, reportName, documents }: ReportVisualizationProps) => {
+const ReportVisualization = ({ 
+  timestamp, 
+  reportName, 
+  documents,
+  onReportNameUpdate
+}: ReportVisualizationProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [pairwiseData, setPairwiseData] = useState<any[]>([]);
   const [hasLoadedData, setHasLoadedData] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [newReportName, setNewReportName] = useState(reportName || "Report Visualization");
   const { toast } = useToast();
 
   const fetchReportData = async () => {
-    if (hasLoadedData) return; // Don't fetch again if already loaded
+    if (hasLoadedData) {
+      return; // Don't fetch again if already loaded
+    }
     
     setIsLoading(true);
     try {
-      // Fetch data directly from the backend
-      const response = await apiClient.get(`/report-data/${timestamp}`);
-      setCsvData(response.data);
+      // Fetch report data using API
+      const response = await fetch(`/api/reports/${timestamp}/data`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch report data');
+      }
+      const data = await response.json();
+      setCsvData(data);
       
       // Try to get pairwise comparison data
       try {
-        const pairwiseResponse = await apiClient.get(`/pairwise-data/${timestamp}`);
-        setPairwiseData(pairwiseResponse.data);
+        const pairwiseResponse = await fetch(`/api/reports/${timestamp}/pairwise`);
+        if (pairwiseResponse.ok) {
+          const pairwiseData = await pairwiseResponse.json();
+          setPairwiseData(pairwiseData);
+        } else {
+          throw new Error('Pairwise data not available');
+        }
       } catch (error) {
         console.warn('Pairwise data not available:', error);
         // Generate sample pairwise data for demonstration
@@ -77,8 +98,8 @@ const ReportVisualization = ({ timestamp, reportName, documents }: ReportVisuali
   const handleExportCSV = async () => {
     setIsLoading(true);
     try {
-      // Use the existing endpoint to download the report
-      window.open(`${apiClient.defaults.baseURL}/download-report/${timestamp}`, '_blank');
+      // Use direct URL for downloading the report
+      window.open(`/api/reports/${timestamp}/download`, '_blank');
       
       toast({
         title: "Download started",
@@ -96,10 +117,91 @@ const ReportVisualization = ({ timestamp, reportName, documents }: ReportVisuali
     }
   };
 
+  const handleUpdateReportName = async () => {
+    if (!newReportName.trim()) {
+      toast({
+        title: "Invalid name",
+        description: "Report name cannot be empty",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await updateReportName(timestamp, newReportName);
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Report name updated successfully"
+        });
+        
+        if (onReportNameUpdate) {
+          onReportNameUpdate(timestamp, newReportName);
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to update report name",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error updating report name:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while updating the report name",
+        variant: "destructive"
+      });
+    } finally {
+      setEditingName(false);
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Card className="w-full mt-4">
       <CardHeader>
-        <CardTitle>{reportName || "Report Visualization"}</CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            {editingName ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={newReportName}
+                  onChange={(e) => setNewReportName(e.target.value)}
+                  className="text-lg font-semibold"
+                  placeholder="Enter report name"
+                  disabled={isLoading}
+                  autoFocus
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleUpdateReportName}
+                  disabled={isLoading}
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <CardTitle className="flex items-center gap-2">
+                {reportName || "Report Visualization"}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => {
+                    setNewReportName(reportName || "Report Visualization");
+                    setEditingName(true);
+                  }}
+                >
+                  <Edit className="h-3.5 w-3.5" />
+                </Button>
+              </CardTitle>
+            )}
+          </div>
+        </div>
         <CardDescription>View and export report data</CardDescription>
       </CardHeader>
       <CardContent>
