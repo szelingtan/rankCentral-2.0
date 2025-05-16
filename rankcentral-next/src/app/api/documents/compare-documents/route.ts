@@ -11,6 +11,7 @@ import { ComparisonEngine } from '@/lib/comparison/comparisonEngine';
 import { getUploadDir } from '@/lib/utils/file-utils';
 import { connectToDatabase } from '@/lib/db/mongodb';
 import { getReportId } from '@/lib/utils/report-utils';
+import { ReportGenerator } from '@/lib/comparison';
 
 const uploadDir = await getUploadDir();
 
@@ -98,6 +99,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 			pdfProcessor,
 			evaluationMethod === 'prompt'
 		);
+
+		console.log(comparisonEngine)
+
+		const reportGenerator = new ReportGenerator();
+		// const reportData = await reportGenerator.generateReport();
 
 		const docList = Object.keys(pdfContents);
 		const results = await comparisonEngine.compareWithMergesort(docList);
