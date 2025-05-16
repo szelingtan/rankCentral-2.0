@@ -119,7 +119,6 @@ export class PDFProcessor {
 	extractCriteriaFromText(text: string): Record<string, string> {
 		const criteria: Record<string, string> = {};
 		const criteriaPattern = /Criterion\s+(\d+)\s*:\s*([A-Za-z\-\s]+?)\s*\((\d+)%\)(.*?)(?=Criterion\s+\d+\s*:|$)/gs;
-
 		let match;
 		while ((match = criteriaPattern.exec(text)) !== null) {
 			const criterionNumber = match[1];
