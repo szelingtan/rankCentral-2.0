@@ -177,40 +177,18 @@ export default class ApiClient {
 		}
 	}
 
-	/**
-	 * Get report data for visualization
-	 */
-	async getReportData(timestamp: string): Promise<any[]> {
+	async checkBackendHealth(): Promise<{ isHealthy: boolean; message: string }> {
 		try {
-			const response = await fetch(`${this.baseUrl}/reports/data/${encodeURIComponent(timestamp)}`);
+			const response = await fetch(`${this.baseUrl}/health`);
 
 			if (!response.ok) {
 				const errorData = await response.json();
-				throw new Error(errorData.error || 'Failed to get report data');
+				throw new Error(errorData.error || 'Backend health check failed');
 			}
 
 			return await response.json();
 		} catch (error) {
-			console.error('Error getting report data:', error);
-			throw error;
-		}
-	}
-
-	/**
-	 * Get pairwise comparison data
-	 */
-	async getPairwiseData(timestamp: string): Promise<any[]> {
-		try {
-			const response = await fetch(`${this.baseUrl}/reports/pairwise/${encodeURIComponent(timestamp)}`);
-
-			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.error || 'Failed to get pairwise data');
-			}
-
-			return await response.json();
-		} catch (error) {
-			console.error('Error getting pairwise data:', error);
+			console.error('Error checking backend health:', error);
 			throw error;
 		}
 	}

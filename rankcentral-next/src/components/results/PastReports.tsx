@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Calendar, Edit, Check, Download, BarChart2 } from 'lucide-react';
+import { FileText, Calendar, Edit, Check, FolderPlus, BarChart2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { updateReportName } from '@/lib/evaluations';
 import { toast } from 'sonner';
@@ -43,11 +44,6 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
   };
   
   const saveReportName = async (timestamp: string) => {
-    if (!newName.trim()) {
-      toast.error("Report name cannot be empty");
-      return;
-    }
-    
     try {
       const result = await updateReportName(timestamp, newName);
       
@@ -58,7 +54,6 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
         toast.error(result.message || "Failed to update report name");
       }
     } catch (error) {
-      console.error("Error updating report name:", error);
       toast.error("An error occurred while updating the report name");
     }
     
@@ -73,7 +68,7 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
     }
   };
 
-  // Function to handle direct navigation to the download tab
+  // Function to handle direct navigation to the export tab
   const handleDownloadClick = (timestamp: string) => {
     // First expand the report if it's not already expanded
     if (expandedReport !== timestamp) {
@@ -87,11 +82,6 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
         exportTab.click();
       }
     }, 100);
-  };
-
-  // Handle report name update from the ReportVisualization component
-  const handleReportNameUpdate = (timestamp: string, updatedName: string) => {
-    onRenameReport(timestamp, updatedName);
   };
 
   return (
@@ -180,8 +170,8 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
                   className="gap-1 text-brand-primary border-brand-primary"
                   onClick={() => handleDownloadClick(report.timestamp)}
                 >
-                  <Download className="h-4 w-4 mr-1" />
-                  Download Report
+                  <FolderPlus className="h-4 w-4 mr-1" />
+                  Add to Project
                 </Button>
               </div>
               
@@ -190,7 +180,6 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
                   timestamp={report.timestamp}
                   reportName={report.report_name}
                   documents={report.documents}
-                  onReportNameUpdate={handleReportNameUpdate}
                 />
               )}
             </div>
