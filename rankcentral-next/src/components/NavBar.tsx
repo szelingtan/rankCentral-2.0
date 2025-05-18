@@ -1,4 +1,4 @@
-
+// Seems to be unused, but let's keep it for now
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, FileText, BarChart, Settings, FolderOpen } from 'lucide-react';

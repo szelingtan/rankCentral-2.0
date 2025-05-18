@@ -20,6 +20,18 @@ export interface User {
 	};
 }
 
+export interface Project {
+	_id?: ObjectId;
+	name: string;
+	description?: string;
+	userId: string | ObjectId;
+	createdAt: string;
+	lastUpdated: string;
+	status: 'active' | 'completed' | 'archived';
+	documents: string[];
+	reports: string[] | ObjectId[];
+}
+
 export interface Report {
 	_id?: ObjectId;
 	userId: string;
@@ -31,6 +43,7 @@ export interface Report {
 	evaluationMethod: string;
 	customPrompt?: string;
 	reportName: string;
+	projectId?: string | ObjectId; // Reference to a project
 }
 
 export interface DocumentUpload {
@@ -42,6 +55,7 @@ export interface DocumentUpload {
 	size: number;
 	uploadDate: string;
 	mimeType: string;
+	projectId?: string | ObjectId; // Reference to a project
 }
 
 // NextAuth types extension

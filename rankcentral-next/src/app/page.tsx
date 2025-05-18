@@ -51,16 +51,17 @@ export default function HomePage() {
 					<p className="text-xl md:text-2xl text-gray-600 mb-10 max-w-3xl mx-auto">
 						Compare and rank documents based on customizable criteria or prompts with Artificial Intelligence
 					</p>
-					<div className="mt-10 flex justify-center gap-4">
+					<div className="mt-10 flex justify-center space-x-4">
 						<Link href="/documents">
 							<Button size="lg" variant="outline">
 								Start Comparing
 								<ArrowRight className="ml-2 h-4 w-4" />
 							</Button>
 						</Link>
-						<Link href="/dashboard">
-							<Button size="lg" variant="outline">
-								View Dashboard
+						<Link href="/projects">
+							<Button size="lg" variant="default">
+								View Projects
+								<FileText className="ml-2 h-4 w-4" />
 							</Button>
 						</Link>
 					</div>
