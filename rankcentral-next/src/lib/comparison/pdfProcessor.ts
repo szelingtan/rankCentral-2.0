@@ -64,12 +64,24 @@ export class PDFProcessor {
 	}
 
 	private base64ToArrayBuffer(base64: string): ArrayBuffer {
+		if (typeof window === 'undefined') {
+		  // Node.js environment
+		const buffer = Buffer.from(base64, 'base64');
+		const arrayBuffer = new ArrayBuffer(buffer.length);
+		const view = new Uint8Array(arrayBuffer);
+		for (let i = 0; i < buffer.length; i++) {
+			view[i] = buffer[i];
+		}
+		return arrayBuffer;
+		} else {
+		  // Browser environment
 		const binaryString = window.atob(base64);
 		const bytes = new Uint8Array(binaryString.length);
 		for (let i = 0; i < binaryString.length; i++) {
 			bytes[i] = binaryString.charCodeAt(i);
 		}
 		return bytes.buffer;
+		}
 	}
 
 	extractCriteriaSections(): CriteriaSections {
