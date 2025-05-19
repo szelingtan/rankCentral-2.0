@@ -10,14 +10,15 @@ import dayjs from 'dayjs';
 import ReportVisualization from './ReportVisualization';
 
 type Report = {
+  reportId: string;
   timestamp: string;
   documents: string[];
-  top_ranked: string;
-  criteria_count: number;
-  evaluation_method: string;
-  custom_prompt?: string;
-  report_name?: string;
-  report_path?: string;
+  topRanked: string;
+  criteriaCount: number;
+  evaluationMethod: string;
+  customPrompt?: string;
+  reportName?: string;
+  reportPath?: string;
 };
 
 type PastReportsProps = {
@@ -111,14 +112,14 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
                   </div>
                 ) : (
                   <CardTitle className="flex items-center gap-2">
-                    {report.report_name || 'Comparison Report'}
+                    {report.reportName || 'Comparison Report'}
                     <Button 
                       variant="ghost" 
                       size="icon" 
                       className="h-5 w-5 ml-1" 
                       onClick={() => startEditing(
                         report.timestamp, 
-                        report.report_name || 'Comparison Report'
+                        report.reportName || 'Comparison Report'
                       )}
                     >
                       <Edit className="h-3 w-3" />
@@ -144,12 +145,12 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
                 
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Top Ranked</h3>
-                  <p className="mt-1">{report.top_ranked ? report.top_ranked.split('/').pop() : 'Not available'}</p>
+                  <p className="mt-1">{report.topRanked ? report.topRanked.split('/').pop() : 'Not available'}</p>
                 </div>
                 
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Evaluation Method</h3>
-                  <p className="mt-1 capitalize">{report.evaluation_method || 'Standard'}</p>
+                  <p className="mt-1 capitalize">{report.evaluationMethod || 'Standard'}</p>
                 </div>
               </div>
               
@@ -178,8 +179,9 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
               {expandedReport === report.timestamp && (
                 <ReportVisualization 
                   timestamp={report.timestamp}
-                  reportName={report.report_name}
+                  reportName={report.reportName}
                   documents={report.documents}
+                  reportId={report.reportId}
                 />
               )}
             </div>

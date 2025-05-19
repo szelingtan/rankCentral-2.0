@@ -36,13 +36,16 @@ export async function GET(request: Request) {
       ...report,
       _id: report._id.toString(), // Convert ObjectId to string
       // Ensure all required fields exist with defaults if needed
+      reportId: report.report_id || '',
       documents: Array.isArray(report.documents) ? report.documents : [],
-      top_ranked: report.top_ranked || '',
-      report_name: report.report_name || 'Untitled Report',
+      topRanked: report.top_ranked || '',
+      reportName: report.report_name || 'Untitled Report',
       timestamp: report.timestamp || new Date().toISOString(),
-      criteria_count: report.criteria_count || 0,
-      evaluation_method: report.evaluation_method || 'standard',
+      criteriaCount: report.criteria_count || 0,
+      evaluationMethod: report.evaluation_method || 'standard',
     }));
+
+    console.log("formatted:", formattedReports);
     
     // Return the reports
     return NextResponse.json({

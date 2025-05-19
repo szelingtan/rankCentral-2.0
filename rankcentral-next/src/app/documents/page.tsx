@@ -246,6 +246,7 @@ const Documents = () => {
       
       if (response.success) {
         showUniqueToast('Analysis complete. Your comparison report is ready.', 'success');
+        router.push(`/results`);
       }
     } catch (error: any) {
       console.error('Error comparing documents:', error);

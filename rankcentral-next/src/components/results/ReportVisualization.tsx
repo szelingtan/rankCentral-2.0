@@ -8,33 +8,41 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import apiClient from '@/lib/comparison/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import ExportTab from './ExportTab';
+import ApiClient from '@/lib/comparison/apiClient';
 
 interface ReportVisualizationProps {
   timestamp: string;
   reportName?: string;
   documents: string[];
+  reportId: string;
 }
 
-const ReportVisualization = ({ timestamp, reportName, documents }: ReportVisualizationProps) => {
+const ReportVisualization = ({ timestamp, reportName, documents, reportId }: ReportVisualizationProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [pairwiseData, setPairwiseData] = useState<any[]>([]);
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const { toast } = useToast();
+  
+  const apiClient = new ApiClient(); // Create an instance of the API client
 
   const fetchReportData = async () => {
-    if (hasLoadedData) return; // Don't fetch again if already loaded
+    if (hasLoadedData) {
+      return; // Don't fetch again if already loaded
+    }
     
     setIsLoading(true);
     try {
+      console.log("report id:", reportId)
       // Fetch data directly from the backend
-      const response = await apiClient.get(`/report-data/${timestamp}`);
-      setCsvData(response.data);
+      const response = await apiClient.getReportDetails(reportId);
+      console.log('Report data:', response.report);
+      setCsvData(response.report);
       
       // Try to get pairwise comparison data
       try {
-        const pairwiseResponse = await apiClient.get(`/pairwise-data/${timestamp}`);
-        setPairwiseData(pairwiseResponse.data);
+        const pairwiseResponse = await apiClient.getPairwiseComparisonResults(reportId);
+        setPairwiseData(pairwiseResponse.results);
       } catch (error) {
         console.warn('Pairwise data not available:', error);
         // Generate sample pairwise data for demonstration
@@ -78,7 +86,21 @@ const ReportVisualization = ({ timestamp, reportName, documents }: ReportVisuali
     setIsLoading(true);
     try {
       // Use the existing endpoint to download the report
-      window.open(`${apiClient.defaults.baseURL}/download-report/${timestamp}`, '_blank');
+      apiClient.downloadReport(reportId)
+      .then((blob) => {
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement('a');
+        link
+          .href = url;
+        link.setAttribute('download', `${reportName || 'report'}.zip`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      })
+      .catch((error) => {
+        console.error('Error downloading report:', error);
+      });
       
       toast({
         title: "Download started",

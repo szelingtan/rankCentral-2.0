@@ -116,7 +116,7 @@ export default class ApiClient {
 	 */
 	async getReportDetails(reportId: string): Promise<{ success: boolean; report: any }> {
 		try {
-			const response = await fetch(`${this.baseUrl}/reports/detail/${encodeURIComponent(reportId)}`);
+			const response = await fetch(`${this.baseUrl}/reports/${encodeURIComponent(reportId)}`);
 
 			if (!response.ok) {
 				const errorData = await response.json();
@@ -135,7 +135,7 @@ export default class ApiClient {
 	 */
 	async downloadReport(reportId: string): Promise<Blob> {
 		try {
-			const response = await fetch(`${this.baseUrl}/reports/download/${encodeURIComponent(reportId)}`);
+			const response = await fetch(`${this.baseUrl}/reports/${encodeURIComponent(reportId)}/download`);
 
 			if (!response.ok) {
 				const errorData = await response.json();
@@ -189,6 +189,22 @@ export default class ApiClient {
 			return await response.json();
 		} catch (error) {
 			console.error('Error checking backend health:', error);
+			throw error;
+		}
+	}
+
+	async getPairwiseComparisonResults(reportId: string): Promise<{ success: boolean; results: ComparisonResult[] }> {
+		try {
+			const response = await fetch(`${this.baseUrl}/reports/${encodeURIComponent(reportId)}/pairwise-comparison`);
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Failed to get pairwise comparison results');
+			}
+
+			return await response.json();
+		} catch (error) {
+			console.error('Error getting pairwise comparison results:', error);
 			throw error;
 		}
 	}

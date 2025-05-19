@@ -14,14 +14,15 @@ import Link from 'next/link';
 const apiClient = new ApiClient();
 
 type EvaluationReport = {
+  reportId: string;
   timestamp: string;
   documents: string[];
-  top_ranked: string;
-  report_path: string;
-  criteria_count: number;
-  evaluation_method: string;
-  custom_prompt?: string;
-  report_name?: string;
+  topRanked: string;
+  reportPath: string;
+  criteriaCount: number;
+  evaluationMethod: string;
+  customPrompt?: string;
+  reportName?: string;
 };
 
 // Define API URL for the backend connection message
@@ -31,6 +32,8 @@ const Results = () => {
   const [pastReports, setPastReports] = useState<EvaluationReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [backendError, setBackendError] = useState<string | null>(null);
+
+  const apiClient = new ApiClient(); // Create an instance of the API client
   const { toast: uiToast } = useToast();
 
   const fetchReports = async () => {
@@ -39,49 +42,25 @@ const Results = () => {
     
     try {
       // Make a fetch request to our Next.js API endpoint
-      const response = await fetch('/api/reports/history', {
-        headers: {
-          'Accept': 'application/json'
-        },
-        // Set a reasonable timeout
-        signal: AbortSignal.timeout(10000) // 10 seconds timeout
-      });
+      const response = await apiClient.getReportHistory();
+
+      console.log('pastReports response:', response);
       
-      // Check if response is actually JSON before trying to parse it
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error(`Expected JSON response but got ${contentType || 'unknown content type'}`);
-      }
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.error || `Server error: ${response.status}`;
-        } catch (e) {
-          // If it's not parseable JSON, just use the text as is
-          errorMessage = `Server error: ${response.status} - ${errorText.substring(0, 100)}`;
-        }
-        throw new Error(errorMessage);
-      }
-      
-      const data = await response.json();
-      console.log('Report history response:', data);
+      const data = response.reports || [];
       
       // Make sure each report has the correct document format
-      const formattedReports = Array.isArray(data.reports) 
-        ? data.reports.map((report: any) => ({
+      const formattedReports = Array.isArray(data) 
+        ? data.map((report: any) => ({
             ...report,
             // Ensure documents array is complete
             documents: Array.isArray(report.documents) ? report.documents : [],
             // Ensure top_ranked is a string
-            top_ranked: report.top_ranked || '',
+            topRanked: report.topRanked || '',
             // Include report name if available
-            report_name: report.report_name || ''
+            reportName: report.reportName || ''
           }))
         : [];
-      
+
       setPastReports(formattedReports);
       
       if (formattedReports.length === 0) {
