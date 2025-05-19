@@ -17,6 +17,7 @@ import ReportNameInput from '@/components/documents/ReportNameInput';
 import { EvaluationMethod } from '@/lib/comparison';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
+import { useToast } from '@/hooks/use-toast';
 
 type Document = {
   id: string;
@@ -74,6 +75,8 @@ const Documents = () => {
   const [documentNames, setDocumentNames] = useState<Record<string, string>>({});
   const [reportName, setReportName] = useState('');
   
+  const { toast } = useToast();
+  
   const apiClient = new ApiClient('/api');
   const router = useRouter();
   
@@ -92,22 +95,22 @@ const Documents = () => {
     
     let toastId;
     if (type === 'success') {
-      toastId = toast.success(message, {
-        position: 'top-right',
-        onAutoClose: () => {
-          displayedToasts.delete(toastKey);
-        }
+      toastId = toast({
+        title: 'Success',
+        description: message,
+        variant: 'default',
       });
     } else if (type === 'loading') {
-      toastId = toast.loading(message, {
-        position: 'top-right'
+      toastId = toast({
+        title: 'Loading',
+        description: message,
+        variant: 'default',
       });
     } else {
-      toastId = toast.error(message, {
-        position: 'top-right',
-        onAutoClose: () => {
-          displayedToasts.delete(toastKey);
-        }
+      toastId = toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
       });
     }
 

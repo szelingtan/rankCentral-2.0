@@ -52,26 +52,26 @@ const Login = () => {
         router.push('/')
       } else {
         toast({
-          title: "Login failed",
-          description: res?.error || "Invalid email or password",
+          title: "Error",
+          description: "Invalid email or incorrect password",
           variant: "destructive",
         });
       }
     } catch (error: any) {
-      let errorMessage = "Invalid email or wrong password";
+      let errorMessage = "Invalid email or incorrect password";
       
       // Further refine error messages if specific information is available
       if (error.message) {
         if (error.message.toLowerCase().includes("user not found")) {
-          errorMessage = "Invalid email address";
+          errorMessage = "Invalid email or incorrect password";
         } else if (error.message.toLowerCase().includes("invalid credentials") || 
                   error.message.toLowerCase().includes("invalid email or password")) {
-          errorMessage = "Invalid email or wrong password";
+          errorMessage = "Invalid email or incorrect password";
         }
       }
       
       toast({
-        title: "Login failed",
+        title: "Error",
         description: errorMessage,
         variant: "destructive",
       });
