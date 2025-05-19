@@ -10,7 +10,7 @@ import RankCentralLogo from '@/components/RankCentralLogo';
 import { Eye, EyeOff } from 'lucide-react';
 import Link from  'next/link';
 import { signIn } from "next-auth/react";
-import Router from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -18,7 +18,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
-  const router = Router.useRouter();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

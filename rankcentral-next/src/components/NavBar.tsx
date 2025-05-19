@@ -1,11 +1,12 @@
 // Seems to be unused, but let's keep it for now
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Home, FileText, BarChart, Settings, FolderOpen } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const NavBar = () => {
-  const location = useLocation();
+  const pathname = usePathname();
   const { user } = useAuth();
   
   const navItems = [
@@ -21,9 +22,9 @@ const NavBar = () => {
       {navItems.map((item) => (
         <Link
           key={item.path}
-          to={item.path}
+          href={item.path}
           className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-sm
-            ${location.pathname === item.path
+            ${pathname === item.path
               ? 'bg-brand-primary text-white font-medium'
               : 'text-gray-700 hover:bg-gray-100'
             }`}

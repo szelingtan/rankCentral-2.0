@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Calendar, Edit, Check, FolderPlus, BarChart2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { updateReportName } from '@/lib/evaluations';
+// import { updateReportName } from '@/lib/evaluations';
 import { toast } from 'sonner';
 import dayjs from 'dayjs';
 import ReportVisualization from './ReportVisualization';
@@ -43,22 +43,22 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
     setNewName(currentName || '');
   };
   
-  const saveReportName = async (timestamp: string) => {
-    try {
-      const result = await updateReportName(timestamp, newName);
+  // const saveReportName = async (timestamp: string) => {
+  //   try {
+  //     const result = await updateReportName(timestamp, newName);
       
-      if (result.success) {
-        onRenameReport(timestamp, newName);
-        toast.success("Report name updated successfully");
-      } else {
-        toast.error(result.message || "Failed to update report name");
-      }
-    } catch (error) {
-      toast.error("An error occurred while updating the report name");
-    }
+  //     if (result.success) {
+  //       onRenameReport(timestamp, newName);
+  //       toast.success("Report name updated successfully");
+  //     } else {
+  //       toast.error(result.message || "Failed to update report name");
+  //     }
+  //   } catch (error) {
+  //     toast.error("An error occurred while updating the report name");
+  //   }
     
-    setEditingName(null);
-  };
+  //   setEditingName(null);
+  // };
 
   const formatTimestamp = (timestamp: string) => {
     try {
@@ -104,7 +104,7 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
                     <Button 
                       size="icon" 
                       variant="ghost" 
-                      onClick={() => saveReportName(report.timestamp)}
+                      // onClick={() => saveReportName(report.timestamp)}
                     >
                       <Check className="h-4 w-4" />
                     </Button>

@@ -7,8 +7,11 @@ import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
-import apiClient from '@/lib/comparison/apiClient';
+import ApiClient from '@/lib/comparison/apiClient';  // Import the class
 import Link from 'next/link';
+
+// Create an instance of the ApiClient
+const apiClient = new ApiClient();
 
 type EvaluationReport = {
   timestamp: string;
@@ -21,51 +24,54 @@ type EvaluationReport = {
   report_name?: string;
 };
 
+// Define API URL for the backend connection message
+const apiUrl = typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:8000` : 'http://localhost:8000';
+
 const Results = () => {
   const [pastReports, setPastReports] = useState<EvaluationReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [backendError, setBackendError] = useState<string | null>(null);
   const { toast: uiToast } = useToast();
-  const apiUrl = import.meta.env.VITE_API_URL || 'https://rankcentral.onrender.com';
-  
-  const checkBackend = async () => {
-    try {
-      const health = await checkBackendHealth();
-      return health.isHealthy;
-    } catch (error) {
-      return false;
-    }
-  };
-  
+
   const fetchReports = async () => {
     setIsLoading(true);
     setBackendError(null);
     
     try {
-      // Check if backend is available first
-      const backendAvailable = await checkBackend();
+      // Make a fetch request to our Next.js API endpoint
+      const response = await fetch('/api/reports/history', {
+        headers: {
+          'Accept': 'application/json'
+        },
+        // Set a reasonable timeout
+        signal: AbortSignal.timeout(10000) // 10 seconds timeout
+      });
       
-      if (!backendAvailable) {
-        setBackendError(`Cannot connect to backend server at ${apiUrl}. Make sure it is running.`);
-        setPastReports([]);
-        setIsLoading(false);
-        toast.error(`Cannot connect to the backend server at ${apiUrl}.`);
-        uiToast({
-          title: "Backend unavailable",
-          description: `Cannot connect to the backend server at ${apiUrl}.`,
-          variant: "destructive",
-        });
-        return;
+      // Check if response is actually JSON before trying to parse it
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error(`Expected JSON response but got ${contentType || 'unknown content type'}`);
       }
       
-      // If backend is available, get the reports
-      console.log('Fetching report history...');
-      const response = await apiClient.get('/report-history');
-      console.log('Report history response:', response.data);
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || `Server error: ${response.status}`;
+        } catch (e) {
+          // If it's not parseable JSON, just use the text as is
+          errorMessage = `Server error: ${response.status} - ${errorText.substring(0, 100)}`;
+        }
+        throw new Error(errorMessage);
+      }
+      
+      const data = await response.json();
+      console.log('Report history response:', data);
       
       // Make sure each report has the correct document format
-      const formattedReports = Array.isArray(response.data) 
-        ? response.data.map((report: any) => ({
+      const formattedReports = Array.isArray(data.reports) 
+        ? data.reports.map((report: any) => ({
             ...report,
             // Ensure documents array is complete
             documents: Array.isArray(report.documents) ? report.documents : [],
@@ -88,11 +94,22 @@ const Results = () => {
     } catch (error: any) {
       console.error('Error fetching reports:', error);
       setPastReports([]);
-      setBackendError(`Error loading reports: ${error.message || "Unknown error"}`);
+      
+      // Create a more user-friendly error message
+      let errorMessage = error.message || "Unknown error";
+      
+      // Add debugging info to the console
+      console.debug('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      setBackendError(`Error loading reports: ${errorMessage}`);
       toast.error('Error loading reports from the backend.');
       uiToast({
         title: "Unable to load reports",
-        description: `There was an error loading past reports. Make sure the backend server is running.`,
+        description: `There was an error loading reports. Please try again later.`,
         variant: "destructive",
       });
     } finally {
@@ -120,7 +137,7 @@ const Results = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Report History</h1>
             <div className="flex mt-2">
-              <Link to="/projects" className="text-brand-primary hover:underline flex items-center gap-1">
+              <Link href="/projects" className="text-brand-primary hover:underline flex items-center gap-1">
                 <span>View Projects</span>
               </Link>
             </div>
@@ -138,12 +155,11 @@ const Results = () => {
 
         {backendError && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-6 rounded relative" role="alert">
-            <strong className="font-bold">Backend connection error: </strong>
+            <strong className="font-bold">Error loading reports: </strong>
             <span className="block sm:inline">{backendError}</span>
-            <p className="mt-2 font-medium">Steps to fix:</p>
-            <p className="mt-1">1. Run <code className="bg-gray-200 px-1 py-0.5 rounded">./run_backend.sh</code> or <code className="bg-gray-200 px-1 py-0.5 rounded">python backend/api.py</code> in your terminal</p>
-            <p className="mt-1">2. Backend URL: <code className="bg-gray-200 px-1 py-0.5 rounded">{apiUrl}</code></p>
-            <p className="mt-1">3. Check terminal for any errors</p>
+            <p className="mt-2 font-medium">Possible issues:</p>
+            <p className="mt-1">1. Connection to database might be failing</p>
+            <p className="mt-1">2. You might need to refresh your session</p>
             <Button
               variant="outline"
               size="sm"

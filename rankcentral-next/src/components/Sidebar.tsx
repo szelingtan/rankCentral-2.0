@@ -1,6 +1,6 @@
-
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { 
   Home, 
   FileText, 
@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 
 const Sidebar = () => {
-  const location = useLocation();
+  const pathname = usePathname();
   
   const navItems = [
     {
@@ -41,7 +41,7 @@ const Sidebar = () => {
   ];
   
   const isActive = (path: string) => {
-    return location.pathname === path;
+    return pathname === path;
   };
 
   return (
@@ -53,7 +53,7 @@ const Sidebar = () => {
         {navItems.map((item) => (
           <Link
             key={item.path}
-            to={item.path}
+            href={item.path}
             className={`flex items-center space-x-3 px-4 py-3 rounded-md transition-all ${
               isActive(item.path)
                 ? 'bg-brand-primary text-white font-medium'
