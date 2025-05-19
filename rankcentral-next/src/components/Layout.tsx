@@ -82,13 +82,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="flex flex-col items-start space-y-2">
               <div className="text-sm font-medium">{user.email}</div>
               <Button 
-                variant="ghost" 
+                variant="outline" 
                 size="sm" 
                 onClick={handleLogout} 
-                className="flex items-center text-red-500 hover:bg-red-50"
+                className="flex w-full items-center justify-center gap-1.5 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 transition-all duration-200 py-1 h-8"
               >
-                <LogOut className="h-4 w-4 mr-1" />
-                Logout
+                <LogOut className="h-3.5 w-3.5" />
+                <span>Sign Out</span>
               </Button>
             </div>
           </div>
@@ -123,12 +123,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Button>
           {user && (
             <Button 
-              variant="ghost" 
-              size="icon"
+              variant="outline" 
+              size="sm"
               onClick={handleLogout} 
-              className="text-red-500 hover:bg-red-50"
+              className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 transition-all duration-200 p-0 h-7 w-7"
+              title="Sign Out"
             >
-              <LogOut className="h-5 w-5" />
+              <LogOut className="h-3.5 w-3.5" />
             </Button>
           )}
         </div>
