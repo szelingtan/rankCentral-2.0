@@ -63,9 +63,18 @@ export async function createZipFromReportData(reportData: any): Promise<Blob | n
 		if (reportData.csv_files && Array.isArray(reportData.csv_files)) {
 			const csvFolder = zip.folder('csv_data');
 
+			// Handle both older format (object with filename:content) and newer format with separate fields
 			for (const fileObj of reportData.csv_files) {
-				for (const [filename, content] of Object.entries(fileObj)) {
-					csvFolder?.file(filename, content as string);
+				if (typeof fileObj === 'object') {
+					if (fileObj.filename && fileObj.content) {
+						// New format with separate filename and content fields
+						csvFolder?.file(fileObj.filename, fileObj.content);
+					} else {
+						// Original format with filename:content pairs
+						for (const [filename, content] of Object.entries(fileObj)) {
+							csvFolder?.file(filename, content as string);
+						}
+					}
 				}
 			}
 		}

@@ -11,7 +11,7 @@ import { ComparisonEngine } from '@/lib/comparison/comparisonEngine';
 import { getUploadDir } from '@/lib/utils/file-utils';
 import { connectToDatabase } from '@/lib/db/mongodb';
 import { getReportId } from '@/lib/utils/report-utils';
-import { ReportGenerator } from '@/lib/comparison';
+import { ReportGenerator } from '@/lib/comparison/reportGenerator';
 
 const uploadDir = await getUploadDir();
 
@@ -100,13 +100,27 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 			evaluationMethod === 'prompt'
 		);
 
-		console.log(comparisonEngine)
-
-		const reportGenerator = new ReportGenerator();
-		// const reportData = await reportGenerator.generateReport();
-
 		const docList = Object.keys(pdfContents);
 		const results = await comparisonEngine.compareWithMergesort(docList);
+
+		// Generate CSV reports using ReportGenerator
+		const reportGenerator = new ReportGenerator();
+		const reportData = await reportGenerator.generateReport(
+			docList,
+			comparisonEngine.comparisonResults,
+			reportName || "Report"
+		);
+		
+		// Convert the report data into CSV files
+		const csvFiles = reportGenerator.createCsvFiles(reportData, reportName || "csv_reports");
+		
+		// Format the CSV files for MongoDB storage - convert from array of objects to array of formatted objects
+		const formattedCsvFiles = csvFiles.map(csvFile => {
+			// Each csvFile is an object with a single key-value pair (filename:content)
+			const filename = Object.keys(csvFile)[0];
+			const content = csvFile[filename];
+			return { filename, content };
+		});
 
 		const reportId = getReportId();
 		const timestamp = new Date().toISOString();
@@ -120,12 +134,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 					? "Valid API key"
 					: "Invalid or missing API key";
 
-				const reportData = {
+				const reportDocument = {
 					user_id: userId,
 					report_id: reportId,
 					timestamp: timestamp,
 					documents: docList,
 					top_ranked: results[0] || null,
+					csv_files: formattedCsvFiles,  // Store CSV files in the formatted structure
 					criteria_count: criteriaManager.criteria.length,
 					evaluation_method: evaluationMethod,
 					custom_prompt: evaluationMethod === 'prompt' ? customPrompt : "",
@@ -133,7 +148,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 					api_key_status: apiKeyStatus
 				};
 
-				await reportsCollection.insertOne(reportData);
+				await reportsCollection.insertOne(reportDocument);
 
 				const allReports = await reportsCollection
 					.find({ user_id: userId })
