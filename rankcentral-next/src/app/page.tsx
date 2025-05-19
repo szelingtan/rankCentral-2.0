@@ -36,9 +36,11 @@ export default function HomePage() {
 							Logout
 						</Button>
 						)}
-					<Button>
-						Get Started
-					</Button>
+						<Button asChild>
+							<Link href="/learn-more">
+								Learn More
+							</Link>
+						</Button>
 				</div>
 			</header>
 
