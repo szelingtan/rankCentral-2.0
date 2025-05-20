@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import RankCentralLogo from '@/components/RankCentralLogo';
-import Router from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 const Register = () => {
   const [email, setEmail] = useState('');
@@ -24,7 +24,7 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const router = Router.useRouter();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
