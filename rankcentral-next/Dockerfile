@@ -15,7 +15,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Create tmp directory with proper permissions
-# Might be removing this in the future
 RUN mkdir -p /app/tmp && chmod 777 /app/tmp
 
 # Next.js collects completely anonymous telemetry data about general usage
@@ -36,6 +35,9 @@ ENV NODE_ENV production
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+
+# Create tmp directory with proper permissions in the runner stage
+RUN mkdir -p /app/tmp/uploads && chmod 777 /app/tmp/uploads
 
 COPY --from=builder /app/public ./public
 
