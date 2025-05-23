@@ -73,26 +73,11 @@ const Register = () => {
 
       toast({
         title: 'Registration successful',
-        description: 'Logging you in now...'
+        description: 'Please sign in with your new credentials'
       });
 
-      // Auto login
-      const signInResult = await signIn('credentials', {
-        redirect: false,
-        email,
-        password,
-        callbackUrl: '/dashboard'
-      });
-
-      if (signInResult?.ok) {
-        router.push('/dashboard');
-      } else {
-        toast({
-          title: 'Login failed',
-          description: 'Please sign in manually',
-          variant: 'destructive'
-        });
-      }
+      // Redirect to login page instead of auto-login
+      router.push('/login');
     } catch (error: any) {
       toast({
         title: 'Registration failed',
