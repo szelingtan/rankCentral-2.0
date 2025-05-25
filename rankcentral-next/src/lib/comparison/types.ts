@@ -50,6 +50,28 @@ export interface ComparisonResult {
 		documentA: number;
 		documentB: number;
 	}>;
+	// Support for legacy snake_case properties from database
+	document_a?: string;
+	document_b?: string;
+	evaluation_details?: {
+		criterion_evaluations?: CriterionEvaluation[];
+		overall_scores?: {
+			document_a: number;
+			document_b: number;
+		};
+		overall_winner?: string;
+		explanation?: string;
+	};
+}
+
+export interface ComparisonResultResponse {
+	ranked_documents: Array<{
+		name: string;
+		score: number;
+		rank: number;
+	}>;
+	comparison_details: ComparisonResult[];
+	report_id: string;
 }
 
 export interface ReportData {

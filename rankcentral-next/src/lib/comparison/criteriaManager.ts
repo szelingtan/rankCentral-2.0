@@ -1,6 +1,9 @@
 // src/lib/comparison/criteriaManager.ts
 import { Criterion, ScoringLevel } from './types';
 
+// Re-export types for convenience
+export type { Criterion, ScoringLevel } from './types';
+
 export class CriteriaManager {
 	criteria: Criterion[] = [];
 

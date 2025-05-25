@@ -41,19 +41,34 @@ export function ComparisonResults({ results }: ComparisonResultsProps) {
 	};
 
 	const getDocumentScore = (comparison: ComparisonResult, docName: string): number => {
-		if (!comparison.evaluation_details) return 0;
-		return comparison.document_a === docName
-			? comparison.evaluation_details.overall_scores.document_a
-			: comparison.evaluation_details.overall_scores.document_b;
+		if (!comparison.evaluationDetails && !comparison.evaluation_details) return 0;
+		
+		const docA = comparison.documentA || comparison.document_a || '';
+		const docB = comparison.documentB || comparison.document_b || '';
+		
+		if (docA === docName) {
+			return comparison.evaluationDetails?.overallScores?.documentA || 
+			       comparison.evaluation_details?.overall_scores?.document_a || 0;
+		} else if (docB === docName) {
+			return comparison.evaluationDetails?.overallScores?.documentB || 
+			       comparison.evaluation_details?.overall_scores?.document_b || 0;
+		}
+		return 0;
 	};
 
 	const calculateAverageScore = (docName: string): number => {
 		const scores = comparison_details
-			.filter(comp => comp.document_a === docName || comp.document_b === docName)
-			.map(comp => getDocumentScore(comp, docName));
+			.filter((comp: ComparisonResult) => {
+				const docA = comp.documentA || comp.document_a || '';
+				const docB = comp.documentB || comp.document_b || '';
+				return docA === docName || docB === docName;
+			})
+			.map((comp: ComparisonResult) => getDocumentScore(comp, docName));
 
-		if (scores.length === 0) return 0;
-		return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+		if (scores.length === 0) {
+			return 0;
+		}
+		return scores.reduce((sum: number, score: number) => sum + score, 0) / scores.length;
 	};
 
 	return (
@@ -67,8 +82,8 @@ export function ComparisonResults({ results }: ComparisonResultsProps) {
 					<div className="space-y-6">
 						<h3 className="text-lg font-medium">Ranking</h3>
 						<div className="space-y-3">
-							{ranked_documents.map((doc, index) => {
-								const score = calculateAverageScore(doc);
+							{ranked_documents.map((doc: {name: string; score: number; rank: number}, index: number) => {
+								const score = calculateAverageScore(doc.name);
 								const scorePercentage = Math.min(Math.round((score / 100) * 100), 100);
 
 								return (
@@ -83,7 +98,7 @@ export function ComparisonResults({ results }: ComparisonResultsProps) {
 											<div className="flex items-center space-x-3">
 												<span className="text-xl font-bold">#{index + 1}</span>
 												<div>
-													<p className="font-medium">{getShortDocName(doc)}</p>
+													<p className="font-medium">{getShortDocName(doc.name)}</p>
 													{index === 0 && <Badge className="bg-green-500">Top Ranked</Badge>}
 												</div>
 											</div>
@@ -106,9 +121,9 @@ export function ComparisonResults({ results }: ComparisonResultsProps) {
 
 							<TabsContent value="pairwise" className="mt-4">
 								<Accordion type="single" collapsible className="w-full">
-									{comparison_details.map((comp, index) => {
-										const docA = getShortDocName(comp.document_a);
-										const docB = getShortDocName(comp.document_b);
+									{comparison_details.map((comp: ComparisonResult, index: number) => {
+										const docA = getShortDocName(comp.documentA || comp.document_a || '');
+										const docB = getShortDocName(comp.documentB || comp.document_b || '');
 										const winner = comp.winner
 											? getShortDocName(comp.winner)
 											: 'Tie';
@@ -126,26 +141,29 @@ export function ComparisonResults({ results }: ComparisonResultsProps) {
 													</div>
 												</AccordionTrigger>
 												<AccordionContent className="px-4 pt-2 pb-4">
-													{comp.evaluation_details && (
+													{(comp.evaluation_details || comp.evaluationDetails) && (
 														<div className="space-y-3">
 															<div className="grid grid-cols-2 gap-4">
 																<div className="space-y-1">
 																	<p className="text-sm font-medium">{docA}</p>
 																	<p className="text-lg font-bold">
-																		{comp.evaluation_details.overall_scores.document_a.toFixed(1)}
+																		{(comp.evaluation_details?.overall_scores?.document_a || 
+																		  comp.evaluationDetails?.overallScores?.documentA || 0).toFixed(1)}
 																	</p>
 																</div>
 																<div className="space-y-1">
 																	<p className="text-sm font-medium">{docB}</p>
 																	<p className="text-lg font-bold">
-																		{comp.evaluation_details.overall_scores.document_b.toFixed(1)}
+																		{(comp.evaluation_details?.overall_scores?.document_b || 
+																		  comp.evaluationDetails?.overallScores?.documentB || 0).toFixed(1)}
 																	</p>
 																</div>
 															</div>
 															<div className="pt-2">
 																<p className="text-sm font-medium mb-1">Explanation</p>
 																<p className="text-sm text-gray-700">
-																	{comp.evaluation_details.explanation}
+																	{comp.evaluation_details?.explanation || 
+																	 comp.evaluationDetails?.explanation || 'No explanation provided'}
 																</p>
 															</div>
 														</div>
@@ -159,11 +177,22 @@ export function ComparisonResults({ results }: ComparisonResultsProps) {
 
 							<TabsContent value="details" className="mt-4">
 								<div className="space-y-4">
-									{comparison_details.map((comp, index) => {
-										if (!comp.evaluation_details?.criterion_evaluations) return null;
+									{comparison_details.map((comp: ComparisonResult, index: number) => {
+										const evaluationDetails = comp.evaluationDetails || comp.evaluation_details;
+										let criterionEvaluations: any[] | undefined;
+										
+										if (comp.evaluationDetails) {
+											criterionEvaluations = comp.evaluationDetails.criterionEvaluations;
+										} else if (comp.evaluation_details) {
+											criterionEvaluations = comp.evaluation_details.criterion_evaluations;
+										}
+										
+										if (!criterionEvaluations) {
+											return null;
+										}
 
-										const docA = getShortDocName(comp.document_a);
-										const docB = getShortDocName(comp.document_b);
+										const docA = getShortDocName(comp.documentA || comp.document_a || '');
+										const docB = getShortDocName(comp.documentB || comp.document_b || '');
 
 										return (
 											<Card key={index}>
@@ -174,16 +203,16 @@ export function ComparisonResults({ results }: ComparisonResultsProps) {
 												</CardHeader>
 												<CardContent>
 													<Accordion type="single" collapsible className="w-full">
-														{comp.evaluation_details.criterion_evaluations.map((eval, evalIndex) => (
+														{criterionEvaluations.map((evaluation: any, evalIndex: number) => (
 															<AccordionItem value={`item-${index}-${evalIndex}`} key={evalIndex}>
 																<AccordionTrigger className="hover:bg-gray-50 px-4 py-2 rounded-lg">
 																	<div className="flex justify-between items-center w-full pr-4">
 																		<div className="font-medium">
-																			{eval.criterion_name}
+																			{evaluation.criterionName || evaluation.criterion_name}
 																		</div>
 																		<div className="flex space-x-4">
-																			<span className="text-sm">{docA}: {eval.document_a_score}</span>
-																			<span className="text-sm">{docB}: {eval.document_b_score}</span>
+																			<span className="text-sm">{docA}: {evaluation.documentAScore || evaluation.document_a_score}</span>
+																			<span className="text-sm">{docB}: {evaluation.documentBScore || evaluation.document_b_score}</span>
 																		</div>
 																	</div>
 																</AccordionTrigger>
@@ -192,20 +221,20 @@ export function ComparisonResults({ results }: ComparisonResultsProps) {
 																		<div className="grid grid-cols-2 gap-4">
 																			<div>
 																				<h4 className="text-sm font-medium mb-1">{docA} Analysis</h4>
-																				<p className="text-sm text-gray-700">{eval.document_a_analysis}</p>
+																				<p className="text-sm text-gray-700">{evaluation.documentAAnalysis || evaluation.document_a_analysis}</p>
 																			</div>
 																			<div>
 																				<h4 className="text-sm font-medium mb-1">{docB} Analysis</h4>
-																				<p className="text-sm text-gray-700">{eval.document_b_analysis}</p>
+																				<p className="text-sm text-gray-700">{evaluation.documentBAnalysis || evaluation.document_b_analysis}</p>
 																			</div>
 																		</div>
 																		<div>
 																			<h4 className="text-sm font-medium mb-1">Comparative Analysis</h4>
-																			<p className="text-sm text-gray-700">{eval.comparative_analysis}</p>
+																			<p className="text-sm text-gray-700">{evaluation.comparativeAnalysis || evaluation.comparative_analysis}</p>
 																		</div>
 																		<div>
 																			<h4 className="text-sm font-medium mb-1">Reasoning</h4>
-																			<p className="text-sm text-gray-700">{eval.reasoning}</p>
+																			<p className="text-sm text-gray-700">{evaluation.reasoning}</p>
 																		</div>
 																	</div>
 																</AccordionContent>

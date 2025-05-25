@@ -9,7 +9,7 @@ import { ObjectId } from 'mongodb';
  */
 export async function GET(
   request: Request,
-  { params }: { params: { reportId: string } }
+  { params }: { params: Promise<{ reportId: string }> }
 ) {
   try {
     // Get the user session
@@ -22,8 +22,8 @@ export async function GET(
       );
     }
     
-    // Get the report ID from params
-    const { reportId } = params;
+    // Await params before accessing its properties (Next.js 15 requirement)
+    const { reportId } = await params;
     
     // Connect to the database
     const { db } = await connectToDatabase();

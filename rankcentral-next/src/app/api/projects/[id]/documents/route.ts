@@ -24,7 +24,7 @@ interface ProjectDocument {
 // GET /api/projects/[id]/documents - Get all documents for a project
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
     // Get the user session
@@ -37,11 +37,14 @@ export async function GET(
       );
     }
     
+    // Await params before accessing its properties (Next.js 15 requirement)
+    const { id } = await params;
+    
     // Connect to the database
     await connectToDatabase();
     
     // Check if the ID is valid
-    if (!mongoose.isValidObjectId(params.id)) {
+    if (!mongoose.isValidObjectId(id)) {
       return NextResponse.json(
         { error: "Invalid project ID" },
         { status: 400 }
@@ -50,7 +53,7 @@ export async function GET(
     
     // Find the project - remove .lean() to get a full Mongoose document
     const project = await Project.findOne({
-      _id: params.id,
+      _id: id,
       userId: session.user.id
     }) as unknown as ProjectDocument;
     
@@ -79,7 +82,7 @@ export async function GET(
 // POST /api/projects/[id]/documents - Add documents to a project
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Get the user session
@@ -92,11 +95,14 @@ export async function POST(
       );
     }
     
+    // Await params before accessing its properties (Next.js 15 requirement)
+    const { id } = await params;
+    
     // Connect to the database
     await connectToDatabase();
     
     // Check if the ID is valid
-    if (!mongoose.isValidObjectId(params.id)) {
+    if (!mongoose.isValidObjectId(id)) {
       return NextResponse.json(
         { error: "Invalid project ID" },
         { status: 400 }
@@ -115,7 +121,7 @@ export async function POST(
     
     // Find the project
     const project = await Project.findOne({
-      _id: params.id,
+      _id: id,
       userId: session.user.id
     }) as unknown as ProjectDocument & { save: () => Promise<ProjectDocument> };
     
@@ -176,7 +182,7 @@ export async function POST(
 // DELETE /api/projects/[id]/documents - Remove documents from a project
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Get the user session
@@ -189,11 +195,14 @@ export async function DELETE(
       );
     }
     
+    // Await params before accessing its properties (Next.js 15 requirement)
+    const { id } = await params;
+    
     // Connect to the database
     await connectToDatabase();
     
     // Check if the ID is valid
-    if (!mongoose.isValidObjectId(params.id)) {
+    if (!mongoose.isValidObjectId(id)) {
       return NextResponse.json(
         { error: "Invalid project ID" },
         { status: 400 }
@@ -212,7 +221,7 @@ export async function DELETE(
     
     // Find the project
     const project = await Project.findOne({
-      _id: params.id,
+      _id: id,
       userId: session.user.id
     }) as unknown as ProjectDocument & { save: () => Promise<ProjectDocument> };
     

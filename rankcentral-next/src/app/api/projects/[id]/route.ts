@@ -23,7 +23,7 @@ interface ProjectDocument {
 // GET /api/projects/[id] - Get a single project by ID
 export async function GET(
 	request: Request,
-	{ params }: { params: { id: string } }
+	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
 		// Get the user session
@@ -36,11 +36,14 @@ export async function GET(
 			);
 		}
 
+		// Await params before accessing its properties (Next.js 15 requirement)
+		const { id } = await params;
+
 		// Connect to the database
 		await connectToDatabase();
 
 		// Check if the ID is valid
-		if (!mongoose.isValidObjectId(params.id)) {
+		if (!mongoose.isValidObjectId(id)) {
 			return NextResponse.json(
 				{ error: "Invalid project ID" },
 				{ status: 400 }
@@ -49,7 +52,7 @@ export async function GET(
 
 		// Find the project
 		const project = await Project.findOne({
-			_id: params.id,
+			_id: id,
 			userId: session.user.id
 		}).lean() as ProjectDocument;
 
@@ -86,7 +89,7 @@ export async function GET(
 // PATCH /api/projects/[id] - Update a project
 export async function PATCH(
 	request: Request,
-	{ params }: { params: { id: string } }
+	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
 		// Get the user session
@@ -99,11 +102,14 @@ export async function PATCH(
 			);
 		}
 
+		// Await params before accessing its properties (Next.js 15 requirement)
+		const { id } = await params;
+
 		// Connect to the database
 		await connectToDatabase();
 
 		// Check if the ID is valid
-		if (!mongoose.isValidObjectId(params.id)) {
+		if (!mongoose.isValidObjectId(id)) {
 			return NextResponse.json(
 				{ error: "Invalid project ID" },
 				{ status: 400 }
@@ -115,7 +121,7 @@ export async function PATCH(
 
 		// Find the project and check ownership
 		const project = await Project.findOne({
-			_id: params.id,
+			_id: id,
 			userId: session.user.id
 		});
 
@@ -146,7 +152,7 @@ export async function PATCH(
 
 		// Update the project
 		const updatedProject = await Project.findByIdAndUpdate(
-			params.id,
+			id,
 			{ $set: updateData },
 			{ new: true } // Return the updated document
 		).lean();
@@ -165,7 +171,7 @@ export async function PATCH(
 // DELETE /api/projects/[id] - Delete a project
 export async function DELETE(
 	request: Request,
-	{ params }: { params: { id: string } }
+	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
 		// Get the user session
@@ -178,11 +184,14 @@ export async function DELETE(
 			);
 		}
 
+		// Await params before accessing its properties (Next.js 15 requirement)
+		const { id } = await params;
+
 		// Connect to the database
 		await connectToDatabase();
 
 		// Check if the ID is valid
-		if (!mongoose.isValidObjectId(params.id)) {
+		if (!mongoose.isValidObjectId(id)) {
 			return NextResponse.json(
 				{ error: "Invalid project ID" },
 				{ status: 400 }
@@ -191,7 +200,7 @@ export async function DELETE(
 
 		// Find the project and check ownership
 		const project = await Project.findOne({
-			_id: params.id,
+			_id: id,
 			userId: session.user.id
 		});
 
@@ -203,7 +212,7 @@ export async function DELETE(
 		}
 
 		// Delete the project
-		await Project.findByIdAndDelete(params.id);
+		await Project.findByIdAndDelete(id);
 
 		// Note: In a real-world scenario, you might want to:
 		// 1. Archive instead of delete

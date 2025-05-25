@@ -17,7 +17,7 @@ interface ProjectDocument {
 // GET /api/projects/[id]/reports - Get all reports for a project
 export async function GET(
 	request: Request,
-	{ params }: { params: { id: string } }
+	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
 		const session = await getServerSession();
@@ -29,9 +29,12 @@ export async function GET(
 			);
 		}
 
+		// Await params before accessing its properties (Next.js 15 requirement)
+		const { id } = await params;
+
 		await connectToDatabase();
 
-		if (!mongoose.isValidObjectId(params.id)) {
+		if (!mongoose.isValidObjectId(id)) {
 			return NextResponse.json(
 				{ error: "Invalid project ID" },
 				{ status: 400 }
@@ -40,7 +43,7 @@ export async function GET(
 
 		// Get the project with proper typing
 		const project = await Project.findOne({
-			_id: params.id,
+			_id: id,
 			userId: session.user.id
 		}).lean();
 
@@ -76,7 +79,7 @@ export async function GET(
 // POST /api/projects/[id]/reports - Add reports to a project
 export async function POST(
 	request: Request,
-	{ params }: { params: { id: string } }
+	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
 		const session = await getServerSession();
@@ -88,9 +91,12 @@ export async function POST(
 			);
 		}
 
+		// Await params before accessing its properties (Next.js 15 requirement)
+		const { id } = await params;
+
 		await connectToDatabase();
 
-		if (!mongoose.isValidObjectId(params.id)) {
+		if (!mongoose.isValidObjectId(id)) {
 			return NextResponse.json(
 				{ error: "Invalid project ID" },
 				{ status: 400 }
@@ -135,7 +141,7 @@ export async function POST(
 		const validReportIds = existingReports.map(report => report._id);
 
 		const project = await Project.findOne({
-			_id: params.id,
+			_id: id,
 			userId: session.user.id
 		});
 
@@ -187,7 +193,7 @@ export async function POST(
 // DELETE /api/projects/[id]/reports - Remove reports from a project
 export async function DELETE(
 	request: Request,
-	{ params }: { params: { id: string } }
+	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
 		const session = await getServerSession();
@@ -199,9 +205,12 @@ export async function DELETE(
 			);
 		}
 
+		// Await params before accessing its properties (Next.js 15 requirement)
+		const { id } = await params;
+
 		await connectToDatabase();
 
-		if (!mongoose.isValidObjectId(params.id)) {
+		if (!mongoose.isValidObjectId(id)) {
 			return NextResponse.json(
 				{ error: "Invalid project ID" },
 				{ status: 400 }
@@ -218,7 +227,7 @@ export async function DELETE(
 		}
 
 		const project = await Project.findOne({
-			_id: params.id,
+			_id: id,
 			userId: session.user.id
 		});
 
