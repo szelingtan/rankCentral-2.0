@@ -99,7 +99,7 @@ const Results = () => {
   const handleRenameReport = (timestamp: string, newName: string) => {
     const updatedReports = pastReports.map(report =>
       report.timestamp === timestamp
-        ? { ...report, report_name: newName }
+        ? { ...report, reportName: newName }
         : report
     );
     setPastReports(updatedReports);

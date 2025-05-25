@@ -2,9 +2,8 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Calendar, Edit, Check, FolderPlus, BarChart2 } from 'lucide-react';
+import { FileText, Calendar, Edit, Check, FolderPlus, BarChart2, X, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-// import { updateReportName } from '@/lib/evaluations';
 import { toast } from 'sonner';
 import dayjs from 'dayjs';
 import ReportVisualization from './ReportVisualization';
@@ -30,6 +29,7 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string | null>(null);
   const [newName, setNewName] = useState<string>('');
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
   
   const toggleExpand = (timestamp: string) => {
     if (expandedReport === timestamp) {
@@ -43,23 +43,77 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
     setEditingName(timestamp);
     setNewName(currentName || '');
   };
+
+  const cancelEditing = () => {
+    setEditingName(null);
+    setNewName('');
+    setIsUpdating(false);
+  };
   
-  // const saveReportName = async (timestamp: string) => {
-  //   try {
-  //     const result = await updateReportName(timestamp, newName);
-      
-  //     if (result.success) {
-  //       onRenameReport(timestamp, newName);
-  //       toast.success("Report name updated successfully");
-  //     } else {
-  //       toast.error(result.message || "Failed to update report name");
-  //     }
-  //   } catch (error) {
-  //     toast.error("An error occurred while updating the report name");
-  //   }
+  const saveReportName = async (timestamp: string, reportId: string) => {
+    const trimmedName = newName.trim();
     
-  //   setEditingName(null);
-  // };
+    if (!trimmedName) {
+      toast.error("Report name cannot be empty");
+      return;
+    }
+
+    if (trimmedName.length > 100) {
+      toast.error("Report name cannot exceed 100 characters");
+      return;
+    }
+
+    // Don't update if the name hasn't changed
+    const currentReport = reports.find(r => r.timestamp === timestamp);
+    if (currentReport && trimmedName === (currentReport.reportName || 'Comparison Report')) {
+      setEditingName(null);
+      setNewName('');
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const response = await fetch('/api/reports/update-name', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reportId: reportId,
+          timestamp: timestamp,
+          newName: trimmedName,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update report name');
+      }
+
+      if (result.success) {
+        onRenameReport(timestamp, trimmedName);
+        toast.success("Report name updated successfully");
+        setEditingName(null);
+        setNewName('');
+      } else {
+        toast.error(result.error || "Failed to update report name");
+      }
+    } catch (error) {
+      console.error('Error updating report name:', error);
+      toast.error(error instanceof Error ? error.message : "An error occurred while updating the report name");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent, timestamp: string, reportId: string) => {
+    if (e.key === 'Enter' && !isUpdating) {
+      saveReportName(timestamp, reportId);
+    } else if (e.key === 'Escape') {
+      cancelEditing();
+    }
+  };
 
   const formatTimestamp = (timestamp: string) => {
     try {
@@ -94,21 +148,46 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-brand-primary" />
                 {editingName === report.timestamp ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      placeholder="Enter report name"
-                      className="text-base font-medium h-8 w-56"
-                      autoFocus
-                    />
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      // onClick={() => saveReportName(report.timestamp)}
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        onKeyDown={(e) => handleKeyPress(e, report.timestamp, report.reportId)}
+                        placeholder="Enter report name"
+                        className="text-base font-medium h-8 w-56"
+                        autoFocus
+                        disabled={isUpdating}
+                        maxLength={100}
+                      />
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={() => saveReportName(report.timestamp, report.reportId)}
+                        disabled={isUpdating || !newName.trim()}
+                        title="Save"
+                      >
+                        {isUpdating ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={cancelEditing}
+                        disabled={isUpdating}
+                        title="Cancel"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {newName.length > 0 && (
+                      <div className="text-xs text-gray-500 ml-1">
+                        {newName.length}/100 characters
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <CardTitle className="flex items-center gap-2">
@@ -121,6 +200,8 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
                         report.timestamp, 
                         report.reportName || 'Comparison Report'
                       )}
+                      disabled={isUpdating}
+                      title="Edit report name"
                     >
                       <Edit className="h-3 w-3" />
                     </Button>

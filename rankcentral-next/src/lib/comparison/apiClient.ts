@@ -154,14 +154,14 @@ export default class ApiClient {
 	 */
 	async updateReportName(reportId: string, newName: string): Promise<{ success: boolean }> {
 		try {
-			const response = await fetch(`${this.baseUrl}/reports/update-name`, {
-				method: 'POST',
+			const response = await fetch('/api/reports/update-name', {
+				method: 'PATCH',
 				headers: {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
-					timestamp: reportId,
-					newName,
+					reportId: reportId,
+					newName: newName,
 				}),
 			});
 
