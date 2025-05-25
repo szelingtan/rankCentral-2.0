@@ -53,59 +53,36 @@ export class ReportGenerator {
         return [];
       }
       
-      // Sanitize folder name for file system use
+      // Sanitized folder name kept for potential future use, but currently not used in file paths
       const sanitizedFolderName = this.sanitizeFolderName(folderName);
       const csvFiles: CsvFile[] = [];
       
-      // Generate unique report ID to include in filenames
+      // Report ID generated but no longer used in filenames
       const reportId = uuidv4().substring(0, 8);
       
-      // Generate CSV content for different report sections
-      if (reportData.overview && Array.isArray(reportData.overview) && reportData.overview.length > 0) {
-        try {
-          const csvContent = this.exportOverviewToCSV(reportData);
-          csvFiles.push({ [`${sanitizedFolderName}/${SHEET_NAMES.overall}_${reportId}.csv`]: csvContent });
-        } catch (error) {
-          console.error('Error generating overview CSV:', error);
-        }
-      }
-      
-      if (reportData.criterionDetails && Array.isArray(reportData.criterionDetails) && reportData.criterionDetails.length > 0) {
-        try {
-          const csvContent = this.exportCriterionDetailsToCSV(reportData);
-          csvFiles.push({ [`${sanitizedFolderName}/${SHEET_NAMES.criteria}_${reportId}.csv`]: csvContent });
-        } catch (error) {
-          console.error('Error generating criterion details CSV:', error);
-        }
-      }
-      
+      // Generate Report Summary CSV (final rankings of all documents)
       if (reportData.winCounts && typeof reportData.winCounts === 'object') {
         try {
-          const csvContent = this.exportWinCountsToCSV(reportData);
-          csvFiles.push({ [`${sanitizedFolderName}/${SHEET_NAMES.wins}_${reportId}.csv`]: csvContent });
+          const csvContent = this.exportReportSummaryToCSV(reportData);
+          csvFiles.push({ [`${SHEET_NAMES.summary}.csv`]: csvContent });
         } catch (error) {
-          console.error('Error generating win counts CSV:', error);
+          console.error('Error generating report summary CSV:', error);
         }
       }
       
-      if (reportData.criterionSummary && Array.isArray(reportData.criterionSummary) && reportData.criterionSummary.length > 0) {
+      // Generate Pairwise Comparisons CSV (detailed comparison results)
+      if (reportData.criterionDetails && Array.isArray(reportData.criterionDetails) && reportData.criterionDetails.length > 0) {
         try {
-          const csvContent = this.exportCriterionSummaryToCSV(reportData);
-          csvFiles.push({ [`${sanitizedFolderName}/${SHEET_NAMES.scores}_${reportId}.csv`]: csvContent });
+          const csvContent = this.exportPairwiseComparisonsToCSV(reportData);
+          csvFiles.push({ [`${SHEET_NAMES.pairwise}.csv`]: csvContent });
         } catch (error) {
-          console.error('Error generating criterion summary CSV:', error);
+          console.error('Error generating pairwise comparisons CSV:', error);
         }
       }
       
-      // Additionally export full JSON data for debugging or advanced usage
-      try {
-        const jsonContent = this.exportReportToJSON(reportData);
-        csvFiles.push({ [`${sanitizedFolderName}/full_report_${reportId}.json`]: jsonContent });
-      } catch (error) {
-        console.error('Error generating JSON export:', error);
-      }
+      // JSON export disabled as per requirements
       
-      console.log(`Generated ${csvFiles.length} export files in folder '${sanitizedFolderName}'`);
+      console.log(`Generated ${csvFiles.length} CSV export files`);
       return csvFiles;
     } catch (error) {
       console.error('Error creating CSV files:', error);
@@ -121,43 +98,57 @@ export class ReportGenerator {
   }
 
   /**
-   * Export report overview to CSV format
+   * Export report summary to CSV format (final rankings of all documents)
    */
-  exportOverviewToCSV(reportData: ReportData): string {
-    const { overview } = reportData;
-    if (!overview || overview.length === 0) {
+  exportReportSummaryToCSV(reportData: ReportData): string {
+    const { winCounts } = reportData;
+    if (!winCounts) {
       return '';
     }
+    
+    let csv = 'Rank,Document\n';
 
-    const headers = Object.keys(overview[0]);
-    let csv = headers.join(',') + '\n';
-
-    for (const row of overview) {
-      const values = headers.map(header => {
-        const value = row[header];
-        return this.formatCsvValue(value);
-      });
-      csv += values.join(',') + '\n';
+    // Get sorted documents by win count
+    const sortedEntries = Object.entries(winCounts)
+      .sort(([, countA], [, countB]) => countB - countA);
+    
+    // Create a simple ranking of documents
+    let rank = 1;
+    for (const [document] of sortedEntries) {
+      const docValue = this.formatCsvValue(document);
+      csv += `${rank},${docValue}\n`;
+      rank++;
     }
 
     return csv;
   }
 
   /**
-   * Export criterion details to CSV format
+   * Export pairwise comparisons to CSV format (detailed comparison results)
    */
-  exportCriterionDetailsToCSV(reportData: ReportData): string {
+  exportPairwiseComparisonsToCSV(reportData: ReportData): string {
     const { criterionDetails } = reportData;
     if (!criterionDetails || criterionDetails.length === 0) {
       return '';
     }
 
-    const headers = Object.keys(criterionDetails[0]);
+    // Construct enhanced headers for the pairwise comparison
+    const baseHeaders = Object.keys(criterionDetails[0]);
+    
+    // Add additional headers for clarity
+    const headers = baseHeaders.includes('Criterion') && baseHeaders.includes('Reasoning') ? 
+      baseHeaders :
+      ['Comparison ID', 'Document A', 'Document B', 'Criterion', 'Winner', 'Score', 'Reasoning'];
+    
     let csv = headers.join(',') + '\n';
 
     for (const row of criterionDetails) {
       const values = headers.map(header => {
-        const value = row[header];
+        let value = row[header];
+        if (header === 'Comparison ID' && !row[header]) {
+          // Generate a comparison ID if not present
+          value = `${row['Document A']}_vs_${row['Document B']}_${row['Criterion']}`.replace(/\s+/g, '_');
+        }
         return this.formatCsvValue(value);
       });
       csv += values.join(',') + '\n';
@@ -165,18 +156,30 @@ export class ReportGenerator {
 
     return csv;
   }
-
+  
   /**
-   * Export win counts to CSV format
+   * Legacy export methods kept for backwards compatibility
    */
+  exportOverviewToCSV(reportData: ReportData): string {
+    console.warn('exportOverviewToCSV is deprecated. Use exportReportSummaryToCSV instead.');
+    return this.exportReportSummaryToCSV(reportData);
+  }
+  
+  exportCriterionDetailsToCSV(reportData: ReportData): string {
+    console.warn('exportCriterionDetailsToCSV is deprecated. Use exportPairwiseComparisonsToCSV instead.');
+    return this.exportPairwiseComparisonsToCSV(reportData);
+  }
+  
   exportWinCountsToCSV(reportData: ReportData): string {
+    console.warn('exportWinCountsToCSV is deprecated. Use exportReportSummaryToCSV instead.');
+    
+    // For backwards compatibility, provide win counts even though new format doesn't use them
     const { winCounts } = reportData;
     if (!winCounts) {
       return '';
     }
     
     let csv = 'Document,Win Count\n';
-
     const sortedEntries = Object.entries(winCounts)
       .sort(([, countA], [, countB]) => countB - countA);
 
@@ -187,11 +190,10 @@ export class ReportGenerator {
 
     return csv;
   }
-
-  /**
-   * Export criterion summary to CSV format
-   */
+  
   exportCriterionSummaryToCSV(reportData: ReportData): string {
+    console.warn('exportCriterionSummaryToCSV is deprecated.');
+    
     const { criterionSummary } = reportData;
     if (!criterionSummary || criterionSummary.length === 0) {
       return '';

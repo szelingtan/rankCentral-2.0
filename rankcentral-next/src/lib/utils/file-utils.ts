@@ -5,6 +5,46 @@ import { nanoid } from 'nanoid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth'; // Need to set up api/auth/
 
+/**
+ * Converts a File object to a Base64 string
+ * @param file The file to convert
+ * @returns A promise that resolves to the Base64 string
+ */
+export async function convertPdfToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+      } else {
+        reject(new Error('Failed to convert file to base64'));
+      }
+    };
+    reader.onerror = error => reject(error);
+  });
+}
+
+/**
+ * Reads a text file and returns its contents as a string
+ * @param file The file to read
+ * @returns A promise that resolves to the file contents
+ */
+export async function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsText(file);
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+      } else {
+        reject(new Error('Failed to read file as text'));
+      }
+    };
+    reader.onerror = error => reject(error);
+  });
+}
+
 export async function getUploadDir() {
 	// Create a temp directory for uploads
 	const uploadDir = join(process.cwd(), 'tmp', 'uploads');

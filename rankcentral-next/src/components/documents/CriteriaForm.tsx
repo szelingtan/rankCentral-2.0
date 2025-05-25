@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -135,11 +135,20 @@ const CriteriaForm = ({
 
   return (
     <div>
+      <div className="flex items-center space-x-2 mb-6">
+        <Label htmlFor="use-custom">Use Custom Criteria</Label>
+        <Switch
+          id="use-custom"
+          checked={useCustomCriteria}
+          onCheckedChange={setUseCustomCriteria}
+        />
+      </div>
+
       {/* Only show detail level tabs when using custom criteria */}
       {useCustomCriteria && (
         <div className="flex items-center space-x-2 mb-6">
           <Label htmlFor="detail-level">Detail Level:</Label>
-          <Tabs value={detailLevel} onValueChange={(value: 'basic' | 'advanced') => setDetailLevel(value)} className="ml-2">
+          <Tabs value={detailLevel} onValueChange={(value) => setDetailLevel(value as 'basic' | 'advanced')} className="ml-2">
             <TabsList>
               <TabsTrigger value="basic">Basic</TabsTrigger>
               <TabsTrigger value="advanced">Advanced</TabsTrigger>

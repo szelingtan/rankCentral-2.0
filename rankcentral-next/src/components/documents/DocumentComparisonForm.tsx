@@ -13,7 +13,12 @@ import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Plus, FilePlus, XCircle, Info } from 'lucide-react';
 import { CriteriaList } from './CriteriaList';
 import { Criterion } from '@/lib/comparison/criteriaManager';
-import { Document } from '@/lib/types';
+// Using inline type instead of import to resolve module not found issues
+interface Document {
+	name: string;
+	content: string;
+	type: 'text' | 'pdf';
+}
 import { readFileAsText, convertPdfToBase64 } from '@/lib/utils/file-utils';
 
 interface DocumentComparisonFormProps {
@@ -37,7 +42,9 @@ export function DocumentComparisonForm({ onComparisonComplete }: DocumentCompari
 	const { toast } = useToast();
 
 	const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-		if (!e.target.files || e.target.files.length === 0) return;
+		if (!e.target.files || e.target.files.length === 0) {
+			return;
+		}
 		setIsLoading(true);
 
 		try {
@@ -73,7 +80,9 @@ export function DocumentComparisonForm({ onComparisonComplete }: DocumentCompari
 			}
 
 			setDocuments([...documents, ...newDocuments]);
-			if (fileInputRef.current) fileInputRef.current.value = '';
+			if (fileInputRef.current) {
+				fileInputRef.current.value = '';
+			}
 		} catch (error) {
 			console.error('Error uploading files:', error);
 			toast({
@@ -151,7 +160,9 @@ export function DocumentComparisonForm({ onComparisonComplete }: DocumentCompari
 
 			toast({ title: 'Comparison complete', description: 'Documents have been ranked successfully.' });
 
-			if (onComparisonComplete) onComparisonComplete(result);
+			if (onComparisonComplete) {
+				onComparisonComplete(result);
+			}
 		} catch (error) {
 			console.error('Comparison error:', error);
 			toast({
@@ -172,9 +183,138 @@ export function DocumentComparisonForm({ onComparisonComplete }: DocumentCompari
 					<CardDescription>Upload or paste documents to compare them using AI</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
+					{/* Report name input */}
+					<div className="mb-4">
+						<Label htmlFor="report-name">Report Name</Label>
+						<Input 
+							id="report-name" 
+							placeholder="Enter a name for this comparison report" 
+							value={reportName}
+							onChange={(e) => setReportName(e.target.value)} 
+							className="mt-1"
+						/>
+					</div>
+
 					{/* Document upload and input */}
+					<div className="space-y-2">
+						<Label className="mb-1 block">Documents</Label>
+						<div className="flex flex-wrap gap-2 mb-2">
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => fileInputRef.current?.click()}
+								className="flex items-center"
+								disabled={isLoading}
+							>
+								<FilePlus className="mr-1 h-4 w-4" />
+								Upload Files
+							</Button>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={addEmptyDocument}
+								className="flex items-center"
+								disabled={isLoading}
+							>
+								<Plus className="mr-1 h-4 w-4" />
+								Add Empty Document
+							</Button>
+							<input
+								type="file"
+								ref={fileInputRef}
+								onChange={handleFileUpload}
+								className="hidden"
+								multiple
+								accept=".txt,.pdf,.doc,.docx"
+								disabled={isLoading}
+							/>
+						</div>
+
+						{documents.length === 0 ? (
+							<div className="text-center py-8 border rounded-md border-dashed">
+								<p className="text-muted-foreground">No documents added yet</p>
+								<p className="text-sm text-muted-foreground mt-2">Upload files or add empty documents to compare</p>
+							</div>
+						) : (
+							<div className="space-y-3">
+								{documents.map((doc, index) => (
+									<div key={index} className="p-3 border rounded-md relative">
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon"
+											onClick={() => removeDocument(index)}
+											className="absolute top-2 right-2 h-6 w-6"
+										>
+											<XCircle className="h-4 w-4" />
+										</Button>
+										<div className="mb-2">
+											<Label htmlFor={`doc-name-${index}`}>Document Name</Label>
+											<Input
+												id={`doc-name-${index}`}
+												value={doc.name}
+												onChange={(e) => updateDocument(index, 'name', e.target.value)}
+												className="mt-1"
+											/>
+										</div>
+										{doc.type === 'text' && (
+											<div>
+												<Label htmlFor={`doc-content-${index}`}>Content</Label>
+												<Textarea
+													id={`doc-content-${index}`}
+													value={doc.content}
+													onChange={(e) => updateDocument(index, 'content', e.target.value)}
+													className="mt-1"
+													rows={5}
+												/>
+											</div>
+										)}
+										{doc.type === 'pdf' && (
+											<div className="mt-2 text-sm text-muted-foreground flex items-center">
+												<Info className="mr-1 h-4 w-4" />
+												PDF file uploaded (content not editable)
+											</div>
+										)}
+									</div>
+								))}
+							</div>
+						)}
+					</div>
+
 					{/* Tabs for criteria or prompt-based evaluation */}
-					{/* Render criteria list or custom prompt textarea */}
+					<div className="mt-6">
+						<Label className="mb-2 block">Evaluation Method</Label>
+						<Tabs value={evaluationMethod} onValueChange={(value) => setEvaluationMethod(value as 'criteria' | 'prompt')} className="w-full">
+							<TabsList className="grid w-full grid-cols-2">
+								<TabsTrigger value="criteria">Criteria-based</TabsTrigger>
+								<TabsTrigger value="prompt">Custom Prompt</TabsTrigger>
+							</TabsList>
+							
+							<TabsContent value="criteria" className="mt-4">
+								<CriteriaList criteria={criteria} setCriteria={setCriteria} />
+							</TabsContent>
+							
+							<TabsContent value="prompt" className="mt-4">
+								<div className="space-y-2">
+									<div className="flex items-start gap-2">
+										<Info className="h-4 w-4 mt-1" />
+										<p className="text-sm text-muted-foreground">
+											Write a custom prompt explaining how you want the documents to be evaluated.
+										</p>
+									</div>
+									<Textarea
+										placeholder="Compare these documents based on..."
+										value={customPrompt}
+										onChange={(e) => setCustomPrompt(e.target.value)}
+										rows={6}
+										className="w-full"
+									/>
+								</div>
+							</TabsContent>
+						</Tabs>
+					</div>
 				</CardContent>
 				<CardFooter>
 					<Button type="submit" disabled={isLoading || documents.length < 2} className="w-full">

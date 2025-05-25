@@ -5,8 +5,6 @@
  */
 
 export const SHEET_NAMES = {
-  overall: 'comparison_overview',
-  criteria: 'criterion_details',
-  wins: 'document_win_counts',
-  scores: 'criterion_scores'
+  summary: 'Report Summary',
+  pairwise: 'Pairwise Comparisons'
 };
