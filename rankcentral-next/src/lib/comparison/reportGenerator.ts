@@ -129,30 +129,93 @@ export class ReportGenerator {
   exportPairwiseComparisonsToCSV(reportData: ReportData): string {
     const { criterionDetails } = reportData;
     if (!criterionDetails || criterionDetails.length === 0) {
-      return '';
+      // Instead of returning an empty string, create a minimal placeholder row
+      // to ensure the file is not empty
+      const headers = [
+        'No.',
+        'Criterion',
+        'Document A Name',
+        'Document A Score',
+        'Document A Analysis',
+        'Document B Name',
+        'Document B Score',
+        'Document B Analysis',
+        'Detailed Reasoning'
+      ];
+      
+      let csv = headers.join(',') + '\n';
+      csv += '1,No comparison data available,,,,,,,\n';
+      return csv;
     }
 
-    // Construct enhanced headers for the pairwise comparison
-    const baseHeaders = Object.keys(criterionDetails[0]);
-    
-    // Add additional headers for clarity
-    const headers = baseHeaders.includes('Criterion') && baseHeaders.includes('Reasoning') ? 
-      baseHeaders :
-      ['Comparison ID', 'Document A', 'Document B', 'Criterion', 'Winner', 'Score', 'Reasoning'];
+    // Define the new headers according to the required structure
+    const headers = [
+      'No.',
+      'Criterion',
+      'Document A Name',
+      'Document A Score',
+      'Document A Analysis',
+      'Document B Name',
+      'Document B Score',
+      'Document B Analysis',
+      'Detailed Reasoning'
+    ];
     
     let csv = headers.join(',') + '\n';
 
-    for (const row of criterionDetails) {
-      const values = headers.map(header => {
-        let value = row[header];
-        if (header === 'Comparison ID' && !row[header]) {
-          // Generate a comparison ID if not present
-          value = `${row['Document A']}_vs_${row['Document B']}_${row['Criterion']}`.replace(/\s+/g, '_');
+    // Extract document names from the comparison field (e.g., "DocA vs DocB")
+    criterionDetails.forEach((row, index) => {
+      // Get criterion name - use criterionName if available, otherwise check if the evaluation method is prompt-based
+      let criterion = row['Criterion Name'] || row['criterionName'] || 'Unknown Criterion';
+      
+      // If this is using a prompt-based evaluation, show the prompt instead
+      if (row['evaluationMethod'] === 'prompt' || (reportData as any).evaluationMethod === 'prompt') {
+        criterion = row['customPrompt'] || (reportData as any).customPrompt || criterion;
+      }
+
+      // Extract document names
+      let documentA = '';
+      let documentB = '';
+      
+      if (row['Comparison'] && typeof row['Comparison'] === 'string') {
+        const parts = row['Comparison'].split(' vs ');
+        if (parts.length === 2) {
+          documentA = parts[0].trim();
+          documentB = parts[1].trim();
         }
-        return this.formatCsvValue(value);
-      });
+      } else {
+        documentA = row['Document A'] || '';
+        documentB = row['Document B'] || '';
+      }
+      
+      // Handle scores and analysis
+      const docAScore = row['Document A Score'] !== undefined ? row['Document A Score'] : '';
+      const docBScore = row['Document B Score'] !== undefined ? row['Document B Score'] : '';
+      const docAAnalysis = row['Document A Analysis'] || '';
+      const docBAnalysis = row['Document B Analysis'] || '';
+      
+      // Get the detailed reasoning (may be in different fields depending on data structure)
+      const detailedReasoning = row['Detailed Reasoning'] || row['Reasoning'] || 
+                               row['Comparative Analysis'] || 'No reasoning provided';
+
+      // Build the row values
+      const rowNumber = index + 1;
+      const values = [
+        rowNumber,
+        this.formatCsvValue(criterion),
+        this.formatCsvValue(documentA),
+        this.formatCsvValue(docAScore),
+        this.formatCsvValue(docAAnalysis),
+        this.formatCsvValue(documentB),
+        this.formatCsvValue(docBScore),
+        this.formatCsvValue(docBAnalysis),
+        this.formatCsvValue(detailedReasoning)
+      ];
+      
       csv += values.join(',') + '\n';
-    }
+    });
+    
+    return csv;
 
     return csv;
   }
