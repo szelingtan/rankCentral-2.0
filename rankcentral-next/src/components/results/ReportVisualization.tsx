@@ -4,11 +4,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart2, ListOrdered, Download } from "lucide-react";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import apiClient from '@/lib/comparison/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import ExportTab from './ExportTab';
 import ApiClient from '@/lib/comparison/apiClient';
+
+interface RankingData {
+  name: string;
+  score: number;
+}
+
+interface PairwiseComparisonData {
+  doc1: string;
+  doc2: string;
+  winner: string;
+  reasoning: string;
+}
 
 interface ReportVisualizationProps {
   timestamp: string;
@@ -19,8 +29,9 @@ interface ReportVisualizationProps {
 
 const ReportVisualization = ({ timestamp, reportName, documents, reportId }: ReportVisualizationProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [csvData, setCsvData] = useState<any[]>([]);
-  const [pairwiseData, setPairwiseData] = useState<any[]>([]);
+  const [csvData, setCsvData] = useState<RankingData[]>([]);
+  const [pairwiseData, setPairwiseData] = useState<PairwiseComparisonData[]>([]);
+  const [explanationText, setExplanationText] = useState<string>('');
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const { toast } = useToast();
   
@@ -37,16 +48,97 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
       // Fetch data directly from the backend
       const response = await apiClient.getReportDetails(reportId);
       console.log('Report data:', response.report);
-      setCsvData(response.report);
+      
+      // Transform the report data into the format expected by the visualization component
+      if (response.report && response.report.results) {
+        // If report has a results array with document rankings
+        const formattedData: RankingData[] = response.report.results.map((item: any) => {
+          let document = '';
+          let score = 0;
+          
+          // Handle different formats of the item
+          if (typeof item === 'object' && item !== null) {
+            document = item.document || item.name || '';
+            score = typeof item.score === 'number' ? item.score : 0;
+          }
+          
+          return {
+            name: document.split('/').pop() || document || 'Unknown',
+            score
+          };
+        });
+        setCsvData(formattedData);
+      } else if (response.report && Array.isArray(response.report)) {
+        // If report is already an array
+        const formattedData: RankingData[] = response.report.map((item: any) => {
+          if (typeof item === 'object' && item !== null) {
+            return {
+              name: item.name || item.document || 'Unknown',
+              score: typeof item.score === 'number' ? item.score : 0
+            };
+          }
+          return { name: 'Unknown', score: 0 };
+        });
+        setCsvData(formattedData);
+      } else if (response.report && typeof response.report === 'object') {
+        // If report is an object with document scores
+        const formattedData: RankingData[] = Object.entries(response.report).map(([key, value]) => ({
+          name: key.split('/').pop() || key,
+          score: typeof value === 'number' ? value : 0
+        }));
+        setCsvData(formattedData);
+      } else {
+        // Fallback to empty array if report format is unknown
+        console.warn('Unknown report format:', response.report);
+        // Create a safe default dataset
+        const safeDefault: RankingData[] = documents.length > 0 
+          ? documents.map((doc, index) => ({
+              name: doc.split('/').pop() || `Document ${index + 1}`,
+              score: 0
+            }))
+          : [{ name: 'No data available', score: 0 }];
+        setCsvData(safeDefault);
+      }
+      
+      // Try to get the top document explanation
+      try {
+        const explanationResponse = await apiClient.getTopDocumentExplanation(reportId);
+        if (explanationResponse.success && typeof explanationResponse.explanation === 'string') {
+          setExplanationText(explanationResponse.explanation);
+        } else {
+          // If no explanation is available, generate one based on the ranking data
+          const topDocument = csvData.length > 0 ? csvData.sort((a, b) => b.score - a.score)[0] : null;
+          if (topDocument) {
+            setExplanationText(`${topDocument.name} was ranked first based on its overall performance across all evaluation criteria.`);
+          } else {
+            setExplanationText('No explanation available for the top-ranked document.');
+          }
+        }
+      } catch (error) {
+        console.warn('Explanation data not available:', error instanceof Error ? error.message : String(error));
+        // Provide a generic explanation
+        setExplanationText('The top document was ranked first based on its overall performance across all criteria.');
+      }
       
       // Try to get pairwise comparison data
       try {
         const pairwiseResponse = await apiClient.getPairwiseComparisonResults(reportId);
-        setPairwiseData(pairwiseResponse.results);
+        // Convert ComparisonResult[] to PairwiseComparisonData[]
+        const formattedPairwiseData: PairwiseComparisonData[] = pairwiseResponse.results.map(result => {
+          const doc1 = (result.documentA || result.document_a || '').split('/').pop() || 'Unknown';
+          const doc2 = (result.documentB || result.document_b || '').split('/').pop() || 'Unknown';
+          const winner = result.winner ? result.winner.split('/').pop() || result.winner : 'Tie';
+          const reasoning = (result.evaluationDetails?.explanation || 
+                           result.evaluation_details?.explanation ||
+                           'No reasoning available.');
+          
+          return { doc1, doc2, winner, reasoning };
+        });
+        setPairwiseData(formattedPairwiseData);
       } catch (error) {
         console.warn('Pairwise data not available:', error);
         // Generate sample pairwise data for demonstration
-        const samplePairwise = [];
+        const samplePairwise: PairwiseComparisonData[] = [];
         for (let i = 0; i < documents.length - 1; i++) {
           for (let j = i + 1; j < documents.length; j++) {
             samplePairwise.push({
@@ -63,15 +155,19 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
       setHasLoadedData(true);
       
     } catch (error) {
-      console.error('Error fetching report data:', error);
+      console.error('Error fetching report data:', error instanceof Error ? error.message : String(error));
+      
+      // Show a detailed error message to the user
       toast({
         title: "Error loading report data",
-        description: "Could not load the visualization data for this report.",
+        description: error instanceof Error 
+          ? `Could not load report data: ${error.message}` 
+          : "Could not load the visualization data for this report.",
         variant: "destructive",
       });
       
       // Generate sample data for demonstration if API fails
-      const sampleData = documents.map(doc => ({
+      const sampleData: RankingData[] = documents.map(doc => ({
         name: doc.split('/').pop() || doc,
         score: Math.floor(Math.random() * 100),
       }));
@@ -87,19 +183,28 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
     try {
       // Use the existing endpoint to download the report
       apiClient.downloadReport(reportId)
-      .then((blob) => {
-        const url = window.URL.createObjectURL(new Blob([blob]));
+      .then((blob: Blob) => {
+        // Create a safe name for the download file
+        const safeReportName = reportName 
+          ? reportName.replace(/[^a-z0-9]/gi, '_').toLowerCase()
+          : `report_${reportId}`;
+        
+        const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link
-          .href = url;
-        link.setAttribute('download', `${reportName || 'report'}.zip`);
+        link.href = url;
+        link.setAttribute('download', `${safeReportName}.zip`);
         document.body.appendChild(link);
         link.click();
-        link.parentNode?.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        
+        // Cleanup
+        setTimeout(() => {
+          link.parentNode?.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }, 100);
       })
-      .catch((error) => {
+      .catch((error: Error) => {
         console.error('Error downloading report:', error);
+        throw error;
       });
       
       toast({
@@ -126,22 +231,22 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
       </CardHeader>
       <CardContent>
         <Tabs 
-          defaultValue="visualization" 
+          defaultValue="rankings" 
           className="w-full" 
           data-report={timestamp}
           onValueChange={(value) => {
-            if ((value === "visualization" || value === "pairwise") && !hasLoadedData) {
+            if ((value === "rankings" || value === "pairwise") && !hasLoadedData) {
               fetchReportData();
             }
           }}
         >
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="visualization">
-              <BarChart2 className="h-4 w-4 mr-2" />
-              Data Visualization
+            <TabsTrigger value="rankings">
+              <ListOrdered className="h-4 w-4 mr-2" />
+              Rankings
             </TabsTrigger>
             <TabsTrigger value="pairwise">
-              <ListOrdered className="h-4 w-4 mr-2" />
+              <BarChart2 className="h-4 w-4 mr-2" />
               Pairwise Comparison
             </TabsTrigger>
             <TabsTrigger value="export">
@@ -150,46 +255,55 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="visualization" className="pt-4">
+          <TabsContent value="rankings" className="pt-4">
             {isLoading ? (
               <div className="flex items-center justify-center p-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={csvData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} height={60} tickMargin={10} />
-                      <YAxis width={40} />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: 'white', borderRadius: '8px', padding: '8px' }}
-                        labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
-                      />
-                      <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                      <Bar dataKey="score" name="Score" fill="#0D6E9A" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                {explanationText && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <h3 className="font-semibold text-blue-800 mb-2">Why the Top Document Ranks First</h3>
+                    <p className="text-sm text-gray-700">{explanationText}</p>
+                  </div>
+                )}
                 
-                <div className="mt-6">
-                  <h3 className="font-medium mb-2">Data Table</h3>
+                <div className="space-y-4">
+                  <h3 className="font-medium text-lg">Final Rankings</h3>
                   <div className="border rounded-lg overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-16">Rank</TableHead>
                           <TableHead>Document</TableHead>
-                          <TableHead className="text-right">Score</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {csvData.map((row, index) => (
-                          <TableRow key={index}>
-                            <TableCell className="font-medium">{row.name}</TableCell>
-                            <TableCell className="text-right">{row.score}</TableCell>
-                          </TableRow>
-                        ))}
+                        {csvData
+                          .sort((a, b) => b.score - a.score)
+                          .map((row, index) => (
+                            <TableRow key={index} className={index === 0 ? "bg-green-50" : ""}>
+                              <TableCell className="font-bold">
+                                <div className={`
+                                  flex items-center justify-center w-8 h-8 rounded-full text-white text-sm font-bold
+                                  ${index === 0 ? 'bg-green-500' : index === 1 ? 'bg-blue-500' : index === 2 ? 'bg-orange-500' : 'bg-gray-500'}
+                                `}>
+                                  {index + 1}
+                                </div>
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                  {row.name}
+                                  {index === 0 && (
+                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                      Top Ranked
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
                       </TableBody>
                     </Table>
                   </div>
@@ -204,41 +318,45 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
               </div>
             ) : (
-              <div className="space-y-4">
-                <h3 className="font-medium text-lg">Pairwise Comparison Results</h3>
-                <div className="border rounded-lg overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Document 1</TableHead>
-                        <TableHead>Document 2</TableHead>
-                        <TableHead>Winner</TableHead>
-                        <TableHead className="hidden md:table-cell">Reasoning</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pairwiseData.length > 0 ? (
-                        pairwiseData.map((comparison, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{comparison.doc1}</TableCell>
-                            <TableCell>{comparison.doc2}</TableCell>
-                            <TableCell className="font-medium">{comparison.winner}</TableCell>
-                            <TableCell className="hidden md:table-cell">
-                              <div className="max-w-md text-sm text-gray-600 whitespace-normal">
-                                {comparison.reasoning}
-                              </div>
+              <div className="space-y-6">
+
+                {/* Pairwise comparison table */}
+                <div className="space-y-4">
+                  <h3 className="font-medium text-lg">Detailed Pairwise Comparisons</h3>
+                  <div className="border rounded-lg overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Document 1</TableHead>
+                          <TableHead>Document 2</TableHead>
+                          <TableHead>Winner</TableHead>
+                          <TableHead className="hidden md:table-cell">Reasoning</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pairwiseData.length > 0 ? (
+                          pairwiseData.map((comparison: PairwiseComparisonData, index) => (
+                            <TableRow key={index}>
+                              <TableCell>{comparison.doc1}</TableCell>
+                              <TableCell>{comparison.doc2}</TableCell>
+                              <TableCell className="font-medium">{comparison.winner}</TableCell>
+                              <TableCell className="hidden md:table-cell">
+                                <div className="max-w-md text-sm text-gray-600 whitespace-normal">
+                                  {comparison.reasoning}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center py-4">
+                              No pairwise comparison data available
                             </TableCell>
                           </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center py-4">
-                            No pairwise comparison data available
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               </div>
             )}

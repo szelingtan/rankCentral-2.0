@@ -1,5 +1,5 @@
 // src/lib/comparison/apiClient.ts
-import { ComparisonOptions, ComparisonResult, Document } from './types';
+import { ComparisonOptions, ComparisonResult, Document, Criterion, Report, ReportSummary } from './types';
 
 /**
  * Client for making API calls to the document comparison backend
@@ -76,7 +76,7 @@ export default class ApiClient {
 	/**
 	 * Get default criteria
 	 */
-	async getDefaultCriteria(): Promise<{ success: boolean; criteria: any[] }> {
+	async getDefaultCriteria(): Promise<{ success: boolean; criteria: Criterion[] }> {
 		try {
 			const response = await fetch(`${this.baseUrl}/criteria/default`);
 
@@ -95,7 +95,7 @@ export default class ApiClient {
 	/**
 	 * Get report history
 	 */
-	async getReportHistory(): Promise<{ success: boolean; reports: any[] }> {
+	async getReportHistory(): Promise<{ success: boolean; reports: ReportSummary[] }> {
 		try {
 			const response = await fetch(`${this.baseUrl}/reports/history`);
 
@@ -114,7 +114,7 @@ export default class ApiClient {
 	/**
 	 * Get report details
 	 */
-	async getReportDetails(reportId: string): Promise<{ success: boolean; report: any }> {
+	async getReportDetails(reportId: string): Promise<{ success: boolean; report: Report }> {
 		try {
 			const response = await fetch(`${this.baseUrl}/reports/${encodeURIComponent(reportId)}`);
 
@@ -154,7 +154,7 @@ export default class ApiClient {
 	 */
 	async updateReportName(reportId: string, newName: string): Promise<{ success: boolean }> {
 		try {
-			const response = await fetch('/api/reports/update-name', {
+			const response = await fetch(`${this.baseUrl}/reports/update-name`, {
 				method: 'PATCH',
 				headers: {
 					'Content-Type': 'application/json',
@@ -205,6 +205,25 @@ export default class ApiClient {
 			return await response.json();
 		} catch (error) {
 			console.error('Error getting pairwise comparison results:', error);
+			throw error;
+		}
+	}
+
+	/**
+	 * Get top document explanation
+	 */
+	async getTopDocumentExplanation(reportId: string): Promise<{ success: boolean; explanation: string }> {
+		try {
+			const response = await fetch(`${this.baseUrl}/reports/${encodeURIComponent(reportId)}/explanation`);
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Failed to get top document explanation');
+			}
+
+			return await response.json();
+		} catch (error) {
+			console.error('Error getting top document explanation:', error);
 			throw error;
 		}
 	}

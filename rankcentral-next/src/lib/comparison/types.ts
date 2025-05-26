@@ -81,6 +81,36 @@ export interface ReportData {
 	criterionSummary: any[];
 }
 
+export interface Report {
+	id: string;
+	name: string;
+	createdAt: string;
+	documents: Document[];
+	criteria: Criterion[];
+	results: ComparisonResult[];
+	ranking: string[];
+	metadata?: {
+		evaluationMethod: EvaluationMethod;
+		modelName?: string;
+		customPrompt?: string;
+	};
+}
+
+export interface ReportSummary {
+	id: string;
+	name: string;
+	createdAt: string;
+	documentCount: number;
+	evaluationMethod: EvaluationMethod;
+}
+
+export interface ReportData {
+	overview: any[];
+	criterionDetails: any[];
+	winCounts: Record<string, number>;
+	criterionSummary: any[];
+}
+
 export type EvaluationMethod = 'criteria' | 'prompt';
 
 export interface ComparisonOptions {

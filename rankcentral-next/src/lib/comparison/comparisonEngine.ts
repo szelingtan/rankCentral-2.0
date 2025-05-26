@@ -7,7 +7,7 @@ export class ComparisonEngine {
 	documents: Record<string, string>;
 	criteria: Criterion[];
 	openaiApiKey: string;
-	pdfProcessor: any;
+	pdfProcessor: PDFProcessor;
 	useCustomPrompt: boolean;
 	comparisonResults: ComparisonResult[] = [];
 	documentComparator: DocumentComparator;

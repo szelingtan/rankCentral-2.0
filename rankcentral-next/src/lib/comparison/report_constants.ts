@@ -6,5 +6,6 @@
 
 export const SHEET_NAMES = {
   summary: 'Report Summary',
-  pairwise: 'Pairwise Comparisons'
+  pairwise: 'Pairwise Comparisons',
+  explanation: 'Top Document Explanation'
 };
