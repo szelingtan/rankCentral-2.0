@@ -25,9 +25,14 @@ export async function GET(
     // Connect to the database
     const { db } = await connectToDatabase();
     
-    // Find the report in the database
-    let report;
-    if (ObjectId.isValid(reportId)) {
+    // Find the report in the database - first try by UUID report_id
+    let report = await db.collection('reports').findOne({
+      report_id: reportId,
+      user_id: session.user.id
+    });
+    
+    // If not found and if reportId is a valid ObjectId, try by _id as fallback
+    if (!report && ObjectId.isValid(reportId)) {
       report = await db.collection('reports').findOne({
         _id: new ObjectId(reportId),
         user_id: session.user.id

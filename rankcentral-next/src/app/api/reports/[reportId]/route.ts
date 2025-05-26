@@ -28,9 +28,9 @@ export async function GET(
     // Connect to the database
     const { db } = await connectToDatabase();
     
-    // Find the report
+    // Find the report using report_id (UUID string) instead of ObjectId
     const report = await db.collection('reports').findOne({
-      _id: new ObjectId(reportId),
+      report_id: reportId,
       user_id: session.user.id
     });
     
@@ -44,10 +44,7 @@ export async function GET(
     // Return the report data
     return NextResponse.json({
       success: true,
-      report: {
-        ...report,
-        _id: report._id.toString()
-      }
+      report: report
     });
     
   } catch (error) {

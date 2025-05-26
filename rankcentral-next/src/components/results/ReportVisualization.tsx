@@ -36,6 +36,18 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
   const { toast } = useToast();
   
   const apiClient = new ApiClient(); // Create an instance of the API client
+  
+  // Use React's useEffect to load data immediately when component mounts
+  React.useEffect(() => {
+    // Reset data when reportId changes to prevent showing stale data
+    setCsvData([]);
+    setPairwiseData([]);
+    setExplanationText('');
+    setHasLoadedData(false);
+    
+    // Fetch new data
+    fetchReportData();
+  }, [reportId]);
 
   const fetchReportData = async () => {
     if (hasLoadedData) {
@@ -44,13 +56,39 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
     
     setIsLoading(true);
     try {
-      console.log("report id:", reportId)
+      console.log("Fetching data for report ID:", reportId);
       // Fetch data directly from the backend
       const response = await apiClient.getReportDetails(reportId);
-      console.log('Report data:', response.report);
+      console.log('Raw report data:', response.report);
+      console.log('Documents in report:', response.report?.documents);
+      console.log('Top ranked document:', response.report?.top_ranked);
       
       // Transform the report data into the format expected by the visualization component
-      if (response.report && response.report.results) {
+      console.log('Processing report data:', response.report);
+      
+      // Check for documents in the report - this should contain the actual document names
+      if (response.report && Array.isArray(response.report.documents)) {
+        // Extract documents from the report itself
+        const docs = response.report.documents;
+        // Use the top_ranked field to identify the highest ranked document
+        const topRanked = response.report.top_ranked || docs[0];
+        
+        // Create ranking data with document names as they appear in the documents array
+        // The order in the documents array represents the ranking
+        const formattedData: RankingData[] = docs.map((doc: string, index: number) => {
+          // Higher score for documents earlier in the array (reverse index)
+          const score = docs.length - index;
+          // If this is the top ranked document, give it the highest score
+          const finalScore = doc === topRanked ? docs.length + 1 : score;
+          
+          return {
+            name: doc.split('/').pop() || doc || 'Unknown',
+            score: finalScore
+          };
+        });
+        
+        setCsvData(formattedData);
+      } else if (response.report && response.report.results) {
         // If report has a results array with document rankings
         const formattedData: RankingData[] = response.report.results.map((item: any) => {
           let document = '';
@@ -68,25 +106,6 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
           };
         });
         setCsvData(formattedData);
-      } else if (response.report && Array.isArray(response.report)) {
-        // If report is already an array
-        const formattedData: RankingData[] = response.report.map((item: any) => {
-          if (typeof item === 'object' && item !== null) {
-            return {
-              name: item.name || item.document || 'Unknown',
-              score: typeof item.score === 'number' ? item.score : 0
-            };
-          }
-          return { name: 'Unknown', score: 0 };
-        });
-        setCsvData(formattedData);
-      } else if (response.report && typeof response.report === 'object') {
-        // If report is an object with document scores
-        const formattedData: RankingData[] = Object.entries(response.report).map(([key, value]) => ({
-          name: key.split('/').pop() || key,
-          score: typeof value === 'number' ? value : 0
-        }));
-        setCsvData(formattedData);
       } else {
         // Fallback to empty array if report format is unknown
         console.warn('Unknown report format:', response.report);
@@ -94,7 +113,7 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
         const safeDefault: RankingData[] = documents.length > 0 
           ? documents.map((doc, index) => ({
               name: doc.split('/').pop() || `Document ${index + 1}`,
-              score: 0
+              score: documents.length - index
             }))
           : [{ name: 'No data available', score: 0 }];
         setCsvData(safeDefault);
@@ -294,9 +313,11 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
                               </TableCell>
                               <TableCell className="font-medium">
                                 <div className="flex items-center gap-2">
-                                  {row.name}
+                                  <span className="truncate max-w-xs md:max-w-md" title={row.name}>
+                                    {row.name}
+                                  </span>
                                   {index === 0 && (
-                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex-shrink-0">
                                       Top Ranked
                                     </span>
                                   )}
