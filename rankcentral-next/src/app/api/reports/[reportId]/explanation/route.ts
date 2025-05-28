@@ -7,7 +7,7 @@ import { SHEET_NAMES } from '@/lib/comparison/report_constants';
 
 export async function GET(
   request: Request,
-  { params }: { params: { reportId: string } }
+  { params }: { params: Promise<{ reportId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -20,7 +20,8 @@ export async function GET(
       );
     }
 
-    const reportId = params.reportId;
+    // Await params before accessing its properties (Next.js 15 requirement)
+    const { reportId } = await params;
     
     // Connect to the database
     const { db } = await connectToDatabase();

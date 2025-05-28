@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { FileText, Trash2, ArrowRight, Upload } from 'lucide-react';
+import { FileText, Trash2, ArrowRight, Upload, Shield } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import ApiClient from '@/lib/comparison/apiClient';
 import CriteriaForm from '@/components/documents/CriteriaForm';
 import ReportNameInput from '@/components/documents/ReportNameInput';
@@ -148,7 +148,9 @@ const Documents = () => {
   };
 
   const uploadFiles = async (files: File[], docId?: string) => {
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      return;
+    }
   
     setIsLoading(true);
   
@@ -190,14 +192,14 @@ const Documents = () => {
   };
   
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
+    const { files } = event.target;
     if (files && files.length > 0) {
       uploadFiles(Array.from(files));
     }
   };
 
   const handleDocumentUpload = (docId: string, event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
+    const { files } = event.target;
     if (files && files.length > 0) {
       uploadFiles([files[0]], docId);
     }
@@ -257,7 +259,7 @@ const Documents = () => {
     } finally {
       setIsLoading(false);
       if (processingToastId) {
-        toast.dismiss(processingToastId);
+        processingToastId.dismiss();
       }
     }
   };
@@ -297,6 +299,15 @@ const Documents = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Security Notice */}
+              <Alert className="border-amber-200 bg-amber-50">
+                <Shield className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800">
+                  <strong>Security Notice:</strong> Please ensure that documents uploaded are classified as <strong>Sensitive Normal</strong> and below only. 
+                  Do not upload documents containing highly sensitive, confidential, or classified information.
+                </AlertDescription>
+              </Alert>
 
               {documents.length === 0 ? (
                 <div className="text-center py-10 border-2 border-dashed rounded-lg">
