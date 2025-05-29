@@ -422,15 +422,15 @@ const Documents = () => {
 
                 {evaluationMethod === 'criteria' ? (
                   <div>
+                    {/* Only one toggle, remove any duplicate or extra toggle/label above */}
                     <div className="flex items-center space-x-2 mb-6">
+                      <Label htmlFor="custom-criteria" className="font-medium text-base text-gray-700">Use Custom Criteria</Label>
                       <Switch
                         id="custom-criteria"
                         checked={useCustomCriteria}
                         onCheckedChange={setUseCustomCriteria}
+                        className={useCustomCriteria ? 'bg-blue-100 ring-2 ring-blue-400 transition' : 'bg-gray-100 transition'}
                       />
-                      <Label htmlFor="custom-criteria">
-                        Use custom criteria instead of default
-                      </Label>
                     </div>
 
                     <CriteriaForm 

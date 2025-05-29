@@ -132,25 +132,30 @@ const CriteriaForm = ({
 
   return (
     <div>
-      <div className="flex items-center space-x-2 mb-6">
-        <Label htmlFor="use-custom">Use Custom Criteria</Label>
-        <Switch
-          id="use-custom"
-          checked={useCustomCriteria}
-          onCheckedChange={setUseCustomCriteria}
-        />
-      </div>
+      {/* Removed the custom criteria toggle from CriteriaForm. The toggle is now only in the parent page. */}
 
       {/* Only show detail level tabs when using custom criteria */}
       {useCustomCriteria && (
-        <div className="flex items-center space-x-2 mb-6">
-          <Label htmlFor="detail-level">Detail Level:</Label>
-          <Tabs value={detailLevel} onValueChange={(value) => setDetailLevel(value as 'basic' | 'advanced')} className="ml-2">
-            <TabsList>
-              <TabsTrigger value="basic">Basic</TabsTrigger>
-              <TabsTrigger value="advanced">Advanced</TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <div className="mb-6">
+          <div className="mb-2 font-semibold text-base">Evaluation Method</div>
+          <div className="flex gap-4">
+            <Button
+              type="button"
+              variant={detailLevel === 'basic' ? 'default' : 'outline'}
+              className={`flex-1 py-3 text-base flex items-center justify-center gap-2 ${detailLevel === 'basic' ? 'bg-blue-600 text-white' : ''}`}
+              onClick={() => setDetailLevel('basic')}
+            >
+              <span role="img" aria-label="basic">📝</span> Basic
+            </Button>
+            <Button
+              type="button"
+              variant={detailLevel === 'advanced' ? 'default' : 'outline'}
+              className={`flex-1 py-3 text-base flex items-center justify-center gap-2 ${detailLevel === 'advanced' ? 'bg-green-600 text-white' : ''}`}
+              onClick={() => setDetailLevel('advanced')}
+            >
+              <span role="img" aria-label="advanced">⚙️</span> Advanced
+            </Button>
+          </div>
         </div>
       )}
 
