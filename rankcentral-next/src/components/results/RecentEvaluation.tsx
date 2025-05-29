@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -17,11 +16,20 @@ type RecentEvaluationProps = {
     winner: string;
     reasoning: string;
   }>;
+  evaluationMethod?: 'criteria' | 'prompt';
 }
 
-const RecentEvaluation = ({ documents, criteriaScores, pairwiseComparisons }: RecentEvaluationProps) => {
+const RecentEvaluation = ({ 
+  documents, 
+  criteriaScores, 
+  pairwiseComparisons, 
+  evaluationMethod = 'criteria' 
+}: RecentEvaluationProps) => {
   // Sort documents by score (highest first)
   const sortedDocuments = [...documents].sort((a, b) => b.score - a.score);
+  
+  // For prompt-based evaluations, we use the pre-sorted order and don't display scores
+  const isPromptBased = evaluationMethod === 'prompt';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -29,7 +37,11 @@ const RecentEvaluation = ({ documents, criteriaScores, pairwiseComparisons }: Re
       <Card className="lg:col-span-3 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle>Overall Ranking</CardTitle>
-          <CardDescription>Documents ranked by their overall scores</CardDescription>
+          <CardDescription>
+            {isPromptBased 
+              ? "Documents ranked by pairwise comparisons" 
+              : "Documents ranked by their overall scores"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -41,9 +53,9 @@ const RecentEvaluation = ({ documents, criteriaScores, pairwiseComparisons }: Re
                 <div className="flex-1">
                   <div className="flex justify-between mb-1">
                     <span className="font-medium">{doc.name}</span>
-                    <span className="font-medium">{doc.score}%</span>
+                    {!isPromptBased && <span className="font-medium">{doc.score}%</span>}
                   </div>
-                  <Progress value={doc.score} className="h-2" />
+                  {!isPromptBased && <Progress value={doc.score} className="h-2" />}
                 </div>
               </div>
             ))}
@@ -51,48 +63,50 @@ const RecentEvaluation = ({ documents, criteriaScores, pairwiseComparisons }: Re
         </CardContent>
       </Card>
 
-      {/* Detailed scores */}
-      <div className="lg:col-span-2">
-        <Card className="shadow-sm h-full">
-          <CardHeader>
-            <CardTitle>Detailed Evaluation</CardTitle>
-            <CardDescription>Scores by individual criteria</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue={sortedDocuments[0]?.id} className="w-full">
-              <TabsList className="grid grid-cols-3 mb-4">
-                {sortedDocuments.map((doc) => (
-                  <TabsTrigger key={doc.id} value={doc.id} className="text-sm">
-                    {doc.name}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              
-              {criteriaScores.map((docScores) => (
-                <TabsContent key={docScores.documentId} value={docScores.documentId} className="mt-0">
-                  <div className="space-y-4">
-                    {docScores.scores.map((criterionScore) => (
-                      <div key={criterionScore.criterionId}>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-sm font-medium">{criterionScore.name}</span>
-                          <span className="text-sm">{criterionScore.score}%</span>
+      {/* Detailed scores - Only show for criteria-based evaluations */}
+      {!isPromptBased && criteriaScores.length > 0 && (
+        <div className="lg:col-span-2">
+          <Card className="shadow-sm h-full">
+            <CardHeader>
+              <CardTitle>Detailed Evaluation</CardTitle>
+              <CardDescription>Scores by individual criteria</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue={sortedDocuments[0]?.id} className="w-full">
+                <TabsList className="grid grid-cols-3 mb-4">
+                  {sortedDocuments.map((doc) => (
+                    <TabsTrigger key={doc.id} value={doc.id} className="text-sm">
+                      {doc.name}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                
+                {criteriaScores.map((docScores) => (
+                  <TabsContent key={docScores.documentId} value={docScores.documentId} className="mt-0">
+                    <div className="space-y-4">
+                      {docScores.scores.map((criterionScore) => (
+                        <div key={criterionScore.criterionId}>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm font-medium">{criterionScore.name}</span>
+                            <span className="text-sm">{criterionScore.score}%</span>
+                          </div>
+                          <Progress 
+                            value={criterionScore.score} 
+                            className="h-2" 
+                          />
                         </div>
-                        <Progress 
-                          value={criterionScore.score} 
-                          className="h-2" 
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </TabsContent>
-              ))}
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-      {/* LLM explanation */}
-      <div className="lg:col-span-1">
+      {/* AI Insights */}
+      <div className={`${!isPromptBased && criteriaScores.length > 0 ? 'lg:col-span-1' : 'lg:col-span-3'}`}>
         <Card className="shadow-sm h-full">
           <CardHeader>
             <CardTitle>AI Insights</CardTitle>

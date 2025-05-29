@@ -24,11 +24,7 @@ const reportData = {
       'Detailed Reasoning': 'Document B demonstrates superior quality'
     }
   ],
-  winCounts: {
-    'doc1.pdf': 1,
-    'doc2.pdf': 0,
-    'doc3.pdf': 1
-  },
+  ranking: ['doc1.pdf', 'doc3.pdf', 'doc2.pdf'],
   evaluationMethod: 'prompt',
   customPrompt: 'Evaluate documents based on clarity and depth of analysis'
 };

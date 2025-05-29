@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Document comparison engine that handles pairwise document evaluations.
+ * Manages the comparison process between documents using various criteria and AI-powered
+ * evaluation methods. Supports both criteria-based and custom prompt evaluation modes.
+ */
+
 // src/lib/comparison/documentComparator.ts
 import { encode } from 'gpt-tokenizer';
 import { CriterionEvaluator } from './criterionEvaluator';
@@ -9,16 +15,48 @@ import {
 } from './types';
 import { PDFProcessor } from './pdfProcessor';
 
+/**
+ * Main class for comparing documents using AI-powered evaluation.
+ * Handles pairwise document comparisons with support for multiple criteria
+ * and custom prompt-based evaluations.
+ * 
+ * @class DocumentComparator
+ */
 export class DocumentComparator {
+	/** @type {Record<string, string>} Map of document names to their text content */
 	documents: Record<string, string>;
+	
+	/** @type {Criterion[]} Array of evaluation criteria for document comparison */
 	criteria: Criterion[];
+	
+	/** @type {string} OpenAI API key for AI-powered evaluations */
 	openaiApiKey: string;
+	
+	/** @type {any} PDF processor instance for document text extraction */
 	pdfProcessor: any;
+	
+	/** @type {boolean} Flag indicating whether to use custom prompt evaluation */
 	useCustomPrompt: boolean;
+	
+	/** @type {string} AI model name to use for evaluations */
 	modelName: string;
+	
+	/** @type {CriterionEvaluator} Component for evaluating individual criteria */
 	criterionEvaluator: CriterionEvaluator;
+	
+	/** @type {PromptGenerator} Component for generating evaluation prompts */
 	promptGenerator: PromptGenerator;
 
+	/**
+	 * Creates a new DocumentComparator instance.
+	 * 
+	 * @param {Record<string, string>} documents - Map of document names to text content
+	 * @param {Criterion[]} criteria - Array of evaluation criteria
+	 * @param {string} openaiApiKey - OpenAI API key for AI evaluations
+	 * @param {any} [pdfProcessor=new PDFProcessor()] - PDF processor for text extraction
+	 * @param {boolean} [useCustomPrompt=false] - Whether to use custom prompt evaluation
+	 * @param {string} [modelName='gpt-4.1-mini'] - AI model to use for evaluations
+	 */
 	constructor(
 		documents: Record<string, string>,
 		criteria: Criterion[],
@@ -42,6 +80,12 @@ export class DocumentComparator {
 		this.promptGenerator = new PromptGenerator();
 	}
 
+	/**
+	 * Validates the OpenAI API key format and length.
+	 * Checks if the provided API key meets basic requirements for validity.
+	 * 
+	 * @returns {boolean} True if the API key appears valid, false otherwise
+	 */
 	validateApiKey(): boolean {
 		const isValid = (
 			typeof this.openaiApiKey === 'string' &&
@@ -55,6 +99,16 @@ export class DocumentComparator {
 		return isValid;
 	}
 
+	/**
+	 * Compares two documents using all configured criteria.
+	 * Performs a comprehensive comparison by evaluating each criterion
+	 * and computing weighted scores to determine the overall winner.
+	 * 
+	 * @param {string} doc1Name - Name of the first document to compare
+	 * @param {string} doc2Name - Name of the second document to compare
+	 * @returns {Promise<ComparisonResult>} Promise resolving to detailed comparison results
+	 * @async
+	 */
 	async compare(doc1Name: string, doc2Name: string): Promise<ComparisonResult> {
 		const allCriterionEvaluations: CriterionEvaluation[] = [];
 		let docAWeightedScore = 0;
@@ -171,6 +225,18 @@ export class DocumentComparator {
 		return comparisonResult;
 	}
 
+	/**
+	 * Determines the overall winner between two documents based on weighted scores.
+	 * Analyzes criterion evaluations and weighted scores to determine which document
+	 * performed better overall, including tie scenarios.
+	 * 
+	 * @param {string} doc1Name - Name of the first document
+	 * @param {string} doc2Name - Name of the second document
+	 * @param {number} docAWeightedScore - Weighted score for document A
+	 * @param {number} docBWeightedScore - Weighted score for document B
+	 * @param {CriterionEvaluation[]} criterionEvaluations - Array of individual criterion evaluations
+	 * @returns {[string, string, string]} Tuple containing overall winner, winner name, and explanation
+	 */
 	determineWinner(
 		doc1Name: string,
 		doc2Name: string,

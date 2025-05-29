@@ -21,11 +21,18 @@ interface ComparisonResultsProps {
 
 export function ComparisonResults({ results }: ComparisonResultsProps) {
 	const { ranked_documents, comparison_details, report_id } = results;
+	
+	// Determine if this is a prompt-based evaluation by checking the first comparison
+	const isPromptBased = comparison_details.length > 0 && 
+		((comparison_details[0] as any)?.evaluationMethod === 'prompt' || 
+		(comparison_details[0] as any)?.evaluation_method === 'prompt');
 
 	const handleDownload = async (): Promise<void> => {
 		try {
 			const response = await fetch(`/api/reports/download/${report_id}`);
-			if (!response.ok) throw new Error('Failed to download report');
+			if (!response.ok) {
+				throw new Error('Failed to download report');
+			}
 
 			const blob = await response.blob();
 			const reportName = `document-comparison-${report_id.substring(0, 8)}.zip`;
@@ -41,7 +48,9 @@ export function ComparisonResults({ results }: ComparisonResultsProps) {
 	};
 
 	const getDocumentScore = (comparison: ComparisonResult, docName: string): number => {
-		if (!comparison.evaluationDetails && !comparison.evaluation_details) return 0;
+		if (!comparison.evaluationDetails && !comparison.evaluation_details) {
+			return 0;
+		}
 		
 		const docA = comparison.documentA || comparison.document_a || '';
 		const docB = comparison.documentB || comparison.document_b || '';
@@ -57,6 +66,10 @@ export function ComparisonResults({ results }: ComparisonResultsProps) {
 	};
 
 	const calculateAverageScore = (docName: string): number => {
+		if (isPromptBased) {
+			return 0; // Don't calculate scores for prompt-based evaluation
+		}
+		
 		const scores = comparison_details
 			.filter((comp: ComparisonResult) => {
 				const docA = comp.documentA || comp.document_a || '';
@@ -102,12 +115,14 @@ export function ComparisonResults({ results }: ComparisonResultsProps) {
 													{index === 0 && <Badge className="bg-green-500">Top Ranked</Badge>}
 												</div>
 											</div>
-											<div className="text-right">
-												<span className="text-sm text-gray-500">Score</span>
-												<p className="text-lg font-bold">{score.toFixed(1)}</p>
-											</div>
+											{!isPromptBased && (
+												<div className="text-right">
+													<span className="text-sm text-gray-500">Score</span>
+													<p className="text-lg font-bold">{score.toFixed(1)}</p>
+												</div>
+											)}
 										</div>
-										<Progress value={scorePercentage} className="h-2" />
+										{!isPromptBased && <Progress value={scorePercentage} className="h-2" />}
 									</div>
 								);
 							})}
@@ -143,27 +158,29 @@ export function ComparisonResults({ results }: ComparisonResultsProps) {
 												<AccordionContent className="px-4 pt-2 pb-4">
 													{(comp.evaluation_details || comp.evaluationDetails) && (
 														<div className="space-y-3">
-															<div className="grid grid-cols-2 gap-4">
-																<div className="space-y-1">
-																	<p className="text-sm font-medium">{docA}</p>
-																	<p className="text-lg font-bold">
-																		{(comp.evaluation_details?.overall_scores?.document_a || 
-																		  comp.evaluationDetails?.overallScores?.documentA || 0).toFixed(1)}
-																	</p>
+															{!isPromptBased && (
+																<div className="grid grid-cols-2 gap-4">
+																	<div className="space-y-1">
+																		<p className="text-sm font-medium">{docA}</p>
+																		<p className="text-lg font-bold">
+																			{(comp.evaluation_details?.overall_scores?.document_a || 
+																			comp.evaluationDetails?.overallScores?.documentA || 0).toFixed(1)}
+																		</p>
+																	</div>
+																	<div className="space-y-1">
+																		<p className="text-sm font-medium">{docB}</p>
+																		<p className="text-lg font-bold">
+																			{(comp.evaluation_details?.overall_scores?.document_b || 
+																			comp.evaluationDetails?.overallScores?.documentB || 0).toFixed(1)}
+																		</p>
+																	</div>
 																</div>
-																<div className="space-y-1">
-																	<p className="text-sm font-medium">{docB}</p>
-																	<p className="text-lg font-bold">
-																		{(comp.evaluation_details?.overall_scores?.document_b || 
-																		  comp.evaluationDetails?.overallScores?.documentB || 0).toFixed(1)}
-																	</p>
-																</div>
-															</div>
+															)}
 															<div className="pt-2">
 																<p className="text-sm font-medium mb-1">Explanation</p>
 																<p className="text-sm text-gray-700">
 																	{comp.evaluation_details?.explanation || 
-																	 comp.evaluationDetails?.explanation || 'No explanation provided'}
+																	comp.evaluationDetails?.explanation || 'No explanation provided'}
 																</p>
 															</div>
 														</div>
@@ -210,10 +227,12 @@ export function ComparisonResults({ results }: ComparisonResultsProps) {
 																		<div className="font-medium">
 																			{evaluation.criterionName || evaluation.criterion_name}
 																		</div>
-																		<div className="flex space-x-4">
-																			<span className="text-sm">{docA}: {evaluation.documentAScore || evaluation.document_a_score}</span>
-																			<span className="text-sm">{docB}: {evaluation.documentBScore || evaluation.document_b_score}</span>
-																		</div>
+																		{!isPromptBased && (
+																			<div className="flex space-x-4">
+																				<span className="text-sm">{docA}: {evaluation.documentAScore || evaluation.document_a_score}</span>
+																				<span className="text-sm">{docB}: {evaluation.documentBScore || evaluation.document_b_score}</span>
+																			</div>
+																		)}
 																	</div>
 																</AccordionTrigger>
 																<AccordionContent className="px-4 pt-2 pb-4">

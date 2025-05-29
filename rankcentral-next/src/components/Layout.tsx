@@ -1,3 +1,8 @@
+/**
+ * @fileoverview Main layout component providing navigation sidebar and page structure.
+ * Handles responsive design with collapsible sidebar and mobile navigation.
+ */
+
 import React from 'react';
 import Link from 'next/link';
 import RankCentralLogo from './RankCentralLogo';
@@ -6,14 +11,31 @@ import { BarChart3, FileText, Settings, Home, GitCompare, HelpCircle, LogOut } f
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
+/**
+ * Props interface for the Layout component.
+ * @interface LayoutProps
+ */
 interface LayoutProps {
+  /** @type {React.ReactNode} Child components to render in the main content area */
   children: React.ReactNode;
 }
 
+/**
+ * Main application layout component with sidebar navigation.
+ * Provides responsive navigation structure with sidebar for desktop and mobile header.
+ * Includes user authentication status and logout functionality.
+ * 
+ * @component
+ * @param {LayoutProps} props - Component props
+ * @returns {JSX.Element} Layout structure with navigation and content area
+ */
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
   const { toast } = useToast();
 
+  /**
+   * Handles user logout with toast notification.
+   */
   const handleLogout = () => {
     logout();
     toast({

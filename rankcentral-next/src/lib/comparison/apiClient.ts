@@ -1,18 +1,34 @@
+/**
+ * @fileoverview API client for document comparison and ranking operations.
+ * Provides methods for uploading documents, running comparisons, and managing reports.
+ */
+
 // src/lib/comparison/apiClient.ts
 import { ComparisonOptions, ComparisonResult, Document, Criterion, Report, ReportSummary } from './types';
 
 /**
- * Client for making API calls to the document comparison backend
+ * Client for making API calls to the document comparison backend.
+ * Handles HTTP requests for document operations, comparisons, and report management.
+ * @class ApiClient
  */
 export default class ApiClient {
+	/** @type {string} Base URL for API endpoints */
 	private baseUrl: string;
 
+	/**
+	 * Creates a new ApiClient instance.
+	 * @param {string} [baseUrl='/api'] - Base URL for API endpoints
+	 */
 	constructor(baseUrl: string = '/api') {
 		this.baseUrl = baseUrl;
 	}
 
 	/**
-	 * Upload documents for comparison
+	 * Upload documents for comparison.
+	 * @async
+	 * @param {File[]} files - Array of files to upload
+	 * @returns {Promise<{success: boolean, documents: Document[]}>} Upload result with document metadata
+	 * @throws {Error} If upload fails or server returns error
 	 */
 	async uploadDocuments(files: File[]): Promise<{ success: boolean; documents: Document[] }> {
 		try {
@@ -39,7 +55,12 @@ export default class ApiClient {
 	}
 
 	/**
-	 * Compare documents
+	 * Compare documents using specified criteria and evaluation method.
+	 * @async
+	 * @param {Document[]} documents - Documents to compare
+	 * @param {ComparisonOptions} options - Comparison configuration options
+	 * @returns {Promise<{success: boolean, results: ComparisonResult[], ranking: string[]}>} Comparison results and ranking
+	 * @throws {Error} If comparison fails or server returns error
 	 */
 	async compareDocuments(
 		documents: Document[],
@@ -74,7 +95,10 @@ export default class ApiClient {
 	}
 
 	/**
-	 * Get default criteria
+	 * Get default evaluation criteria.
+	 * @async
+	 * @returns {Promise<{success: boolean, criteria: Criterion[]}>} Default criteria configuration
+	 * @throws {Error} If request fails or server returns error
 	 */
 	async getDefaultCriteria(): Promise<{ success: boolean; criteria: Criterion[] }> {
 		try {
@@ -93,7 +117,10 @@ export default class ApiClient {
 	}
 
 	/**
-	 * Get report history
+	 * Get report history for the current user.
+	 * @async
+	 * @returns {Promise<{success: boolean, reports: ReportSummary[]}>} List of user's reports
+	 * @throws {Error} If request fails or server returns error
 	 */
 	async getReportHistory(): Promise<{ success: boolean; reports: ReportSummary[] }> {
 		try {
@@ -112,7 +139,11 @@ export default class ApiClient {
 	}
 
 	/**
-	 * Get report details
+	 * Get detailed information for a specific report.
+	 * @async
+	 * @param {string} reportId - Unique identifier of the report
+	 * @returns {Promise<{success: boolean, report: Report}>} Complete report data
+	 * @throws {Error} If request fails or server returns error
 	 */
 	async getReportDetails(reportId: string): Promise<{ success: boolean; report: Report }> {
 		try {
@@ -131,7 +162,11 @@ export default class ApiClient {
 	}
 
 	/**
-	 * Download report as ZIP
+	 * Download report as ZIP file.
+	 * @async
+	 * @param {string} reportId - Unique identifier of the report
+	 * @returns {Promise<Blob>} ZIP file blob containing report data
+	 * @throws {Error} If download fails or server returns error
 	 */
 	async downloadReport(reportId: string): Promise<Blob> {
 		try {
@@ -150,7 +185,12 @@ export default class ApiClient {
 	}
 
 	/**
-	 * Update report name
+	 * Update the name of an existing report.
+	 * @async
+	 * @param {string} reportId - Unique identifier of the report
+	 * @param {string} newName - New name for the report
+	 * @returns {Promise<{success: boolean}>} Update operation result
+	 * @throws {Error} If update fails or server returns error
 	 */
 	async updateReportName(reportId: string, newName: string): Promise<{ success: boolean }> {
 		try {
@@ -177,6 +217,12 @@ export default class ApiClient {
 		}
 	}
 
+	/**
+	 * Check the health status of the backend API.
+	 * @async
+	 * @returns {Promise<{isHealthy: boolean, message: string}>} Backend health status
+	 * @throws {Error} If health check fails
+	 */
 	async checkBackendHealth(): Promise<{ isHealthy: boolean; message: string }> {
 		try {
 			const response = await fetch(`${this.baseUrl}/health`);
@@ -193,6 +239,13 @@ export default class ApiClient {
 		}
 	}
 
+	/**
+	 * Get pairwise comparison results for a specific report.
+	 * @async
+	 * @param {string} reportId - Unique identifier of the report
+	 * @returns {Promise<{success: boolean, results: ComparisonResult[]}>} Detailed pairwise comparison data
+	 * @throws {Error} If request fails or server returns error
+	 */
 	async getPairwiseComparisonResults(reportId: string): Promise<{ success: boolean; results: ComparisonResult[] }> {
 		try {
 			const response = await fetch(`${this.baseUrl}/reports/${encodeURIComponent(reportId)}/pairwise-comparison`);
@@ -209,22 +262,4 @@ export default class ApiClient {
 		}
 	}
 
-	/**
-	 * Get top document explanation
-	 */
-	async getTopDocumentExplanation(reportId: string): Promise<{ success: boolean; explanation: string }> {
-		try {
-			const response = await fetch(`${this.baseUrl}/reports/${encodeURIComponent(reportId)}/explanation`);
-
-			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.error || 'Failed to get top document explanation');
-			}
-
-			return await response.json();
-		} catch (error) {
-			console.error('Error getting top document explanation:', error);
-			throw error;
-		}
-	}
 }

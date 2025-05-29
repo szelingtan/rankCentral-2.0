@@ -1,25 +1,60 @@
+/**
+ * @fileoverview PDF processing utility for extracting and analyzing document content.
+ * Handles PDF text extraction, criteria-based content sectioning, and content retrieval.
+ */
+
 // src/lib/comparison/pdfProcessor.ts
+
+// This file extracts text from PDF files and processes them for criteria evaluation.
 import { PDFDocument } from 'pdf-lib';
 
+/**
+ * Mapping of criterion names to their extracted content sections.
+ * @interface DocumentSections
+ */
 interface DocumentSections {
+	/** @type {string} Content section for each criterion */
 	[criterion: string]: string;
 }
 
+/**
+ * Mapping of document names to their criteria sections.
+ * @interface CriteriaSections
+ */
 interface CriteriaSections {
+	/** @type {DocumentSections} Criteria sections for each document */
 	[documentName: string]: DocumentSections;
 }
 
+/**
+ * Utility class for processing PDF documents and extracting text content.
+ * Provides methods for loading PDFs, extracting text, and organizing content by criteria.
+ * @class PDFProcessor
+ */
 export class PDFProcessor {
+	/** @type {Record<string, string>} Cache of extracted PDF text content */
 	pdfContents: Record<string, string> = {};
+	/** @type {Record<string, any>} Cache of extracted criteria content */
 	extractedCriteria: Record<string, any> = {};
+	/** @type {CriteriaSections} Organized content sections by criteria */
 	criteriaSections: CriteriaSections = {};
 
+	/**
+	 * Creates a new PDFProcessor instance.
+	 * Initializes empty content caches.
+	 */
 	constructor() {
 		this.pdfContents = {};
 		this.extractedCriteria = {};
 		this.criteriaSections = {};
 	}
 
+	/**
+	 * Loads and processes multiple PDF files.
+	 * @async
+	 * @param {File[]} files - Array of PDF File objects to process
+	 * @returns {Promise<Record<string, string>>} Map of filenames to extracted text content
+	 */
 	async loadPDFs(files: File[]): Promise<Record<string, string>> {
 		console.log(`\nLoading ${files.length} PDFs...`);
 
@@ -37,6 +72,13 @@ export class PDFProcessor {
 		return this.pdfContents;
 	}
 
+	/**
+	 * Extracts text content from a PDF ArrayBuffer.
+	 * @async
+	 * @param {ArrayBuffer} arrayBuffer - PDF file data as ArrayBuffer
+	 * @returns {Promise<string>} Extracted text content
+	 * @throws {Error} If PDF parsing fails
+	 */
 	async extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
 		try {
 			const pdfDoc = await PDFDocument.load(arrayBuffer);
@@ -46,6 +88,13 @@ export class PDFProcessor {
 		}
 	}
 
+	/**
+	 * Loads and processes a PDF from base64-encoded content.
+	 * @async
+	 * @param {string} filename - Name of the PDF file
+	 * @param {string} base64Content - Base64-encoded PDF content
+	 * @returns {Promise<string>} Extracted text content
+	 */
 	async loadBase64PDF(filename: string, base64Content: string): Promise<string> {
 		try {
 			if (base64Content.includes(',')) {
@@ -63,6 +112,13 @@ export class PDFProcessor {
 		}
 	}
 
+	/**
+	 * Converts base64 string to ArrayBuffer for PDF processing.
+	 * Handles both Node.js and browser environments.
+	 * @private
+	 * @param {string} base64 - Base64-encoded string
+	 * @returns {ArrayBuffer} ArrayBuffer representation of the data
+	 */
 	private base64ToArrayBuffer(base64: string): ArrayBuffer {
 		if (typeof window === 'undefined') {
 		  // Node.js environment
@@ -84,6 +140,11 @@ export class PDFProcessor {
 		}
 	}
 
+	/**
+	 * Extracts and organizes content sections based on criteria keywords.
+	 * Uses regex patterns to identify relevant content for different evaluation criteria.
+	 * @returns {CriteriaSections} Organized content sections by document and criteria
+	 */
 	extractCriteriaSections(): CriteriaSections {
 		if (Object.keys(this.pdfContents).length === 0) {
 			console.log('No PDF contents loaded.');
@@ -128,6 +189,12 @@ export class PDFProcessor {
 		return this.criteriaSections;
 	}
 
+	/**
+	 * Extracts structured criteria content from document text.
+	 * Identifies criterion sections using pattern matching.
+	 * @param {string} text - Document text content
+	 * @returns {Record<string, string>} Map of criterion names to their content
+	 */
 	extractCriteriaFromText(text: string): Record<string, string> {
 		const criteria: Record<string, string> = {};
 		const criteriaPattern = /Criterion\s+(\d+)\s*:\s*([A-Za-z\-\s]+?)\s*\((\d+)%\)(.*?)(?=Criterion\s+\d+\s*:|$)/gs;
@@ -156,6 +223,13 @@ export class PDFProcessor {
 		return criteria;
 	}
 
+	/**
+	 * Retrieves content for a specific criterion from a document.
+	 * Uses multiple fallback strategies to find relevant content.
+	 * @param {string} documentName - Name of the document
+	 * @param {string} criterionName - Name of the criterion to find content for
+	 * @returns {string} Content related to the specified criterion, or empty string if not found
+	 */
 	getCriteriaContent(documentName: string, criterionName: string): string {
 		if (!this.extractedCriteria[documentName]) {
 			if (this.pdfContents[documentName]) {

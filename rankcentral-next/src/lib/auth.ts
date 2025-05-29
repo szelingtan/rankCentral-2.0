@@ -1,3 +1,8 @@
+/**
+ * @fileoverview Authentication configuration and utilities for Next.js application
+ * using NextAuth.js with credentials provider and JWT strategy.
+ */
+
 // src/lib/auth.ts
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
@@ -6,6 +11,11 @@ import { connectToDatabase } from '@/lib/db/mongodb';
 import { ObjectId } from 'mongodb';
 import { getServerSession } from 'next-auth/next';
 
+/**
+ * NextAuth configuration object defining authentication providers, pages, sessions, and callbacks.
+ * Uses credentials provider with email/password authentication and JWT strategy.
+ * @type {NextAuthOptions}
+ */
 export const authOptions: NextAuthOptions = {
 	providers: [
 		CredentialsProvider({
@@ -67,6 +77,15 @@ export const authOptions: NextAuthOptions = {
 	debug: process.env.NODE_ENV === 'development',
 };
 
+/**
+ * Retrieves the currently authenticated user from the database.
+ * Uses NextAuth session to get user ID and fetches full user data from MongoDB.
+ * 
+ * @async
+ * @function getCurrentUser
+ * @returns {Promise<Object|null>} User object without password field, or null if not authenticated
+ * @throws {Error} Logs error if database query fails
+ */
 export async function getCurrentUser() {
 	const { db } = await connectToDatabase();
 
@@ -98,6 +117,13 @@ export async function getCurrentUser() {
 
 /**
  * Check if a user has permission to access a resource
+ * @async
+ * @function checkPermission
+ * @param {string} userId - The ID of the user requesting access
+ * @param {string} resourceOwnerId - The ID of the resource owner
+ * @param {boolean} [allowAdmin=true] - Whether admin users should have access regardless of ownership
+ * @returns {Promise<boolean>} True if user has permission, false otherwise
+ * @throws {Error} Logs error if database query fails during admin check
  */
 export async function checkPermission(
 	userId: string,

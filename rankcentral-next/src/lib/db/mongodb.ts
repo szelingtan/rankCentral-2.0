@@ -1,21 +1,30 @@
+/**
+ * @fileoverview MongoDB connection utilities for the application.
+ * Provides connection management, database access, and connection pooling.
+ */
+
 // src/lib/db/mongodb.ts
 
 import { MongoClient, Db } from 'mongodb';
 
-// MongoDB connection string from environment variables
+/** @type {string} MongoDB connection string from environment variables */
 const MONGODB_URI = process.env.MONGODB_URI || '';
+/** @type {string} MongoDB database name from environment variables */
 const MONGODB_DB = process.env.MONGODB_DB || 'document-comparison';
 
-// Global variable to store the MongoDB client between requests
+/** @type {MongoClient|null} Global variable to store the MongoDB client between requests */
 let cachedClient: MongoClient | null = null;
+/** @type {Db|null} Global variable to store the MongoDB database instance between requests */
 let cachedDb: Db | null = null;
 
 /**
- * Connect to MongoDB and get the database instance
+ * Connect to MongoDB and get the database instance.
+ * This function caches the database connection to reuse it between requests.
  * 
- * This function caches the database connection to reuse it between requests
- * 
- * @returns The MongoDB database instance
+ * @async
+ * @function connectToDatabase
+ * @returns {Promise<{client: MongoClient, db: Db}>} The MongoDB client and database instance
+ * @throws {Error} If MONGODB_URI environment variable is not set or connection fails
  */
 export async function connectToDatabase(): Promise<{ client: MongoClient; db: Db }> {
   // If the connection is already established, return the cached client and database
@@ -58,9 +67,13 @@ export async function connectToDatabase(): Promise<{ client: MongoClient; db: Db
 }
 
 /**
- * Get the MongoDB database instance
+ * Get the MongoDB database instance.
+ * For server-side rendering or API routes that need database access.
  * 
- * For server-side rendering or API routes that need database access
+ * @async
+ * @function getDb
+ * @returns {Promise<Db>} The MongoDB database instance
+ * @throws {Error} If connection to database fails
  */
 export async function getDb(): Promise<Db> {
   const { db } = await connectToDatabase();
@@ -68,9 +81,12 @@ export async function getDb(): Promise<Db> {
 }
 
 /**
- * Close the database connection
+ * Close the database connection.
+ * Should be called when the application is shutting down.
  * 
- * Should be called when the application is shutting down
+ * @async
+ * @function closeDatabase
+ * @returns {Promise<void>}
  */
 export async function closeDatabase(): Promise<void> {
   if (cachedClient) {

@@ -1,7 +1,28 @@
+/**
+ * @fileoverview Prompt generation utilities for AI-powered document comparison.
+ * Creates structured prompts for criterion-based and custom evaluations.
+ */
+
 // src/lib/comparison/promptGenerator.ts
 import { Criterion } from './types';
 
+/**
+ * Utility class for generating AI evaluation prompts.
+ * Creates structured prompts for both criterion-based and custom document evaluations.
+ * @class PromptGenerator
+ */
 export class PromptGenerator {
+	/**
+	 * Generates a structured prompt for evaluating documents against a specific criterion.
+	 * Creates detailed instructions with scoring rubrics and evaluation guidelines.
+	 * 
+	 * @param {string} doc1Name - Name of the first document
+	 * @param {string} doc2Name - Name of the second document
+	 * @param {string} doc1Section - Relevant content from the first document
+	 * @param {string} doc2Section - Relevant content from the second document
+	 * @param {Criterion} criterion - Evaluation criterion with scoring levels
+	 * @returns {string} Formatted prompt for AI evaluation
+	 */
 	generateCriterionPrompt(
 		doc1Name: string,
 		doc2Name: string,
@@ -86,6 +107,17 @@ export class PromptGenerator {
 		return prompt;
 	}
 
+	/**
+	 * Generates a custom evaluation prompt based on user-provided instructions.
+	 * Creates a flexible evaluation framework for custom comparison requirements.
+	 * 
+	 * @param {string} doc1Name - Name of the first document
+	 * @param {string} doc2Name - Name of the second document
+	 * @param {string} doc1Section - Content from the first document
+	 * @param {string} doc2Section - Content from the second document
+	 * @param {string} customPromptText - User-provided evaluation instructions
+	 * @returns {string} Formatted custom evaluation prompt
+	 */
 	generateCustomPrompt(
 		doc1Name: string,
 		doc2Name: string,

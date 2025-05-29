@@ -147,7 +147,7 @@ const LearnMore = () => {
 						</CardHeader>
 						<CardContent>
 							<p className="text-gray-600">
-								rankCentral is created for use within the Central Provident Fund Board. Please feel free to approach Sze Ling and Callyanne if you need any assistance.
+								rankCentral is created for use within the Central Provident Fund Board.
 							</p>
 							<div className="mt-6 flex flex-wrap gap-4">
 								<Button asChild variant="default">

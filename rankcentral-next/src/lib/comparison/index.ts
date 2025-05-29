@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Main export module for the comparison library.
+ * Provides a centralized access point for all comparison-related components,
+ * utilities, and types used in document comparison and ranking systems.
+ */
+
 // src/lib/comparison/index.ts
 // Export all components from this directory
 

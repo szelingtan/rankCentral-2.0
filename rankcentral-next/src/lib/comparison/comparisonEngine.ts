@@ -1,18 +1,45 @@
+/**
+ * @fileoverview Document comparison engine that orchestrates document ranking using AI-powered comparisons.
+ * Implements merge sort algorithm with async comparisons for scalable document ranking.
+ */
+
 // src/lib/comparison/comparisonEngine.ts
 import { DocumentComparator } from './documentComparator';
 import { PDFProcessor } from './pdfProcessor';
 import { ComparisonResult, Criterion } from './types';
 
+/**
+ * Main engine for comparing and ranking documents using AI-powered analysis.
+ * Implements merge sort with asynchronous comparisons for efficient document ranking.
+ * @class ComparisonEngine
+ */
 export class ComparisonEngine {
+	/** @type {Record<string, string>} Map of document names to their content */
 	documents: Record<string, string>;
+	/** @type {Criterion[]} Array of criteria for document evaluation */
 	criteria: Criterion[];
+	/** @type {string} OpenAI API key for AI-powered comparisons */
 	openaiApiKey: string;
+	/** @type {PDFProcessor} PDF processing utility */
 	pdfProcessor: PDFProcessor;
+	/** @type {boolean} Whether to use custom prompt for comparisons */
 	useCustomPrompt: boolean;
+	/** @type {ComparisonResult[]} Cache of completed comparisons */
 	comparisonResults: ComparisonResult[] = [];
+	/** @type {DocumentComparator} Core comparison logic handler */
 	documentComparator: DocumentComparator;
+	/** @type {string} AI model name to use for comparisons */
 	modelName: string;
 
+	/**
+	 * Creates a new ComparisonEngine instance.
+	 * @param {Record<string, string>} documents - Map of document names to content
+	 * @param {Criterion[]} criteria - Array of evaluation criteria
+	 * @param {string} openaiApiKey - OpenAI API key
+	 * @param {PDFProcessor} [pdfProcessor=new PDFProcessor()] - PDF processing utility
+	 * @param {boolean} [useCustomPrompt=false] - Whether to use custom prompt
+	 * @param {string} [modelName='gpt-4.1-mini'] - AI model to use
+	 */
 	constructor(
 		documents: Record<string, string>,
 		criteria: Criterion[],
@@ -37,6 +64,10 @@ export class ComparisonEngine {
 		);
 	}
 
+	/**
+	 * Validates the provided OpenAI API key format.
+	 * @returns {boolean} True if API key appears valid, false otherwise
+	 */
 	validateApiKey(): boolean {
 		const isValid = (
 			typeof this.openaiApiKey === 'string' &&
@@ -50,6 +81,14 @@ export class ComparisonEngine {
 		return isValid;
 	}
 
+	/**
+	 * Compares two documents and returns the comparison result.
+	 * Uses caching to avoid redundant comparisons.
+	 * @async
+	 * @param {string} doc1 - Name of the first document
+	 * @param {string} doc2 - Name of the second document
+	 * @returns {Promise<ComparisonResult>} Result of the comparison
+	 */
 	async compareDocuments(doc1: string, doc2: string): Promise<ComparisonResult> {
 		console.log(`\nComparing ${doc1} vs ${doc2}...`);
 
@@ -80,6 +119,13 @@ export class ComparisonEngine {
 		}
 	}
 
+	/**
+	 * Finds an existing comparison result in the cache.
+	 * Checks both forward and reverse comparisons.
+	 * @param {string} doc1 - Name of the first document
+	 * @param {string} doc2 - Name of the second document
+	 * @returns {ComparisonResult|null} Cached result if found, null otherwise
+	 */
 	findExistingComparison(doc1: string, doc2: string): ComparisonResult | null {
 		for (const result of this.comparisonResults) {
 			if (result.documentA === doc1 && result.documentB === doc2) {
@@ -104,6 +150,12 @@ export class ComparisonEngine {
 		return null;
 	}
 
+	/**
+	 * Ranks documents using merge sort algorithm with async comparisons.
+	 * @async
+	 * @param {string[]} documents - Array of document names to rank
+	 * @returns {Promise<string[]>} Array of document names in ranked order (best to worst)
+	 */
 	async compareWithMergesort(documents: string[]): Promise<string[]> {
 		const startTime = Date.now();
 		console.log(`Starting comparison of ${documents.length} documents using merge sort...`);
@@ -124,7 +176,13 @@ export class ComparisonEngine {
 		return sortedDocs;
 	}
 
-	// Update comparisonFunction to handle asynchronous calls
+	/**
+	 * Comparison function for merge sort that determines which document ranks higher.
+	 * @async
+	 * @param {string} doc1 - Name of the first document
+	 * @param {string} doc2 - Name of the second document
+	 * @returns {Promise<number>} 1 if doc1 wins, -1 if doc2 wins, 0 for tie
+	 */
 	async comparisonFunction(doc1: string, doc2: string): Promise<number> {
 		if (doc1 === doc2) {
 			return 0;
@@ -151,7 +209,13 @@ export class ComparisonEngine {
 		}
 	}
 
-	// Update mergesortWithComparator to handle asynchronous comparator
+	/**
+	 * Asynchronous merge sort implementation for document ranking.
+	 * @async
+	 * @param {string[]} items - Array of items to sort
+	 * @param {function} comparator - Async comparison function
+	 * @returns {Promise<string[]>} Sorted array
+	 */
 	async mergesortWithComparator(
 		items: string[],
 		comparator: (a: string, b: string) => Promise<number>
@@ -167,7 +231,14 @@ export class ComparisonEngine {
 		return this.mergeWithComparator(leftHalf, rightHalf, comparator);
 	}
 
-	// Update mergeWithComparator to handle asynchronous comparator
+	/**
+	 * Merges two sorted arrays using async comparator function.
+	 * @async
+	 * @param {string[]} left - Left sorted array
+	 * @param {string[]} right - Right sorted array
+	 * @param {function} comparator - Async comparison function
+	 * @returns {Promise<string[]>} Merged sorted array
+	 */
 	async mergeWithComparator(
 		left: string[],
 		right: string[],

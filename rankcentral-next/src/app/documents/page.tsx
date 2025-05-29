@@ -304,7 +304,7 @@ const Documents = () => {
               <Alert className="border-amber-200 bg-amber-50">
                 <Shield className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="text-amber-800 flex items-center gap-1 pt-0.5">
-                  <span className="font-bold">Security Notice:</span> Please only upload data up to <strong>Sensitive Normal</strong>.
+                  <span className="font-bold">Security Notice:</span> Please only upload data up to <strong>Official Closed.</strong>
                 </AlertDescription>
               </Alert>
 

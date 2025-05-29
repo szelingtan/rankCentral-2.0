@@ -1,12 +1,27 @@
+/**
+ * @fileoverview Management utilities for document evaluation criteria.
+ * Provides functionality to create, manage, and configure evaluation criteria
+ * with scoring rubrics for document comparison systems.
+ */
+
 // src/lib/comparison/criteriaManager.ts
 import { Criterion, ScoringLevel } from './types';
 
 // Re-export types for convenience
 export type { Criterion, ScoringLevel } from './types';
 
+/**
+ * Manages evaluation criteria for document comparison systems.
+ * Provides default criteria templates and utilities for creating
+ * custom evaluation frameworks with scoring rubrics.
+ * 
+ * @class CriteriaManager
+ */
 export class CriteriaManager {
+	/** @type {Criterion[]} Array of current evaluation criteria */
 	criteria: Criterion[] = [];
 
+	/** @type {Criterion[]} Default set of evaluation criteria with predefined scoring levels */
 	defaultCriteria: Criterion[] = [
 		{
 			id: "1",
@@ -62,10 +77,19 @@ export class CriteriaManager {
 		}
 	];
 
+	/**
+	 * Creates a new CriteriaManager instance with empty criteria array.
+	 */
 	constructor() {
 		this.criteria = [];
 	}
 
+	/**
+	 * Retrieves criteria for evaluation, using defaults if none are configured.
+	 * Returns current criteria or falls back to default criteria if none exist.
+	 * 
+	 * @returns {Criterion[]} Array of evaluation criteria
+	 */
 	getCriteriaFromUser(): Criterion[] {
 		if (this.criteria.length === 0) {
 			this.criteria = [...this.defaultCriteria];
@@ -74,6 +98,16 @@ export class CriteriaManager {
 		return this.criteria;
 	}
 
+	/**
+	 * Adds a new evaluation criterion to the criteria list.
+	 * Creates a criterion with the specified parameters and default scoring levels
+	 * if none are provided.
+	 * 
+	 * @param {string} name - Name of the criterion
+	 * @param {string} description - Description of what the criterion evaluates
+	 * @param {number} weight - Weight/importance of this criterion (0-100)
+	 * @param {ScoringLevel} [scoringLevels] - Optional custom scoring rubric levels
+	 */
 	addCriterion(
 		name: string,
 		description: string,
@@ -101,6 +135,13 @@ export class CriteriaManager {
 		});
 	}
 
+	/**
+	 * Updates an existing criterion with new values.
+	 * Merges the provided updates with the existing criterion data.
+	 * 
+	 * @param {string} id - ID of the criterion to update
+	 * @param {Partial<Criterion>} updates - Partial criterion object with updates
+	 */
 	updateCriterion(id: string, updates: Partial<Criterion>): void {
 		const criterionIndex = this.criteria.findIndex(c => c.id === id);
 		if (criterionIndex !== -1) {
@@ -111,20 +152,42 @@ export class CriteriaManager {
 		}
 	}
 
+	/**
+	 * Removes a criterion from the criteria list by ID.
+	 * 
+	 * @param {string} id - ID of the criterion to remove
+	 */
 	removeCriterion(id: string): void {
 		this.criteria = this.criteria.filter(criterion => criterion.id !== id);
 	}
 
+	/**
+	 * Retrieves a criterion by its unique ID.
+	 * 
+	 * @param {string} criterionId - ID of the criterion to find
+	 * @returns {Criterion | undefined} The criterion if found, undefined otherwise
+	 */
 	getCriterionById(criterionId: string): Criterion | undefined {
 		return this.criteria.find(criterion => criterion.id === criterionId);
 	}
 
+	/**
+	 * Retrieves a criterion by its name (case-insensitive).
+	 * 
+	 * @param {string} name - Name of the criterion to find
+	 * @returns {Criterion | undefined} The criterion if found, undefined otherwise
+	 */
 	getCriterionByName(name: string): Criterion | undefined {
 		return this.criteria.find(
 			criterion => criterion.name.toLowerCase() === name.toLowerCase()
 		);
 	}
 
+	/**
+	 * Normalizes criterion weights to total 100%.
+	 * Recalculates all criterion weights as percentages of the total weight,
+	 * ensuring they sum to 100 for proper weighted scoring.
+	 */
 	normalizeCriteriaWeights(): void {
 		const totalWeight = this.criteria.reduce((sum, criterion) => sum + criterion.weight, 0);
 

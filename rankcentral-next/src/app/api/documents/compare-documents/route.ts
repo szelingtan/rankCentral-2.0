@@ -108,7 +108,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 		const reportData = await reportGenerator.generateReport(
 			docList,
 			comparisonEngine.comparisonResults,
-			reportName || "Report"
+			reportName || "Report",
+			results // Pass the merge sort results directly to generate report
 		);
 		
 		// Convert the report data into CSV files - pass the sorted documents order for unified ranking

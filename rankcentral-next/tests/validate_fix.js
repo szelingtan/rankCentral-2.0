@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 try {
-  const reportGeneratorPath = path.join(__dirname, 'src/lib/comparison/reportGenerator.ts');
+  const reportGeneratorPath = path.join(__dirname, '../src/lib/comparison/reportGenerator.ts');
   const reportGeneratorContent = fs.readFileSync(reportGeneratorPath, 'utf8');
   
   // Check for the key fix around lines 192-194
@@ -22,7 +22,7 @@ try {
   }
   
   // Test 2: Verify promptGenerator.ts uses consistent naming
-  const promptGeneratorPath = path.join(__dirname, 'src/lib/comparison/promptGenerator.ts');
+  const promptGeneratorPath = path.join(__dirname, '../src/lib/comparison/promptGenerator.ts');
   const promptGeneratorContent = fs.readFileSync(promptGeneratorPath, 'utf8');
   
   const hasConsistentNaming = promptGeneratorContent.includes('"criterion_name": "Custom Evaluation"');
