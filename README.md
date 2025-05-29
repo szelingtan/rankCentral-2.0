@@ -40,7 +40,7 @@ rankCentral is a web application designed for the Central Provident Fund Board t
 1. Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone <https://github.com/szelingtan/rankCentral-2.0.git>
 cd rankCentral-2.0/rankcentral-next
 ```
 
@@ -52,7 +52,7 @@ npm install
 
 3. Set up environment variables:
 
-Create a `.env.local` file in the root directory with the following variables:
+Create a `.env` file in the root directory with the following variables:
 
 ```env
 # MongoDB Connection
@@ -66,6 +66,8 @@ NEXTAUTH_SECRET=your_nextauth_secret
 OPENAI_API_KEY=your_openai_api_key
 ```
 
+The .env file is intentionally gitignored to prevent committing sensitive environment variables. Please maintain this configuration.
+
 4. Start the development server:
 
 ```bash
@@ -74,16 +76,16 @@ npm run dev
 
 The application will be available at `http://localhost:3000`.
 
-## Available Scripts
+## npm Commands
 
 - `npm run dev` - Start development server with Turbopack
 - `npm run build` - Build for production
 - `npm run start` - Start production server
-- `npm run lint` - Run ESLint
+- `npm run lint` - Run ESLint (Check for ESLint)
 
 ## Development Workflow
 
-### Making Changes
+### Pushing Changes to GitHub
 
 1. Create a new branch for your feature:
 
@@ -106,7 +108,7 @@ git push origin feature/your-feature-name
 
 4. Create a pull request for review
 
-### Docker and Production Deployment
+### Deployment to Airbase
 
 The application uses GovTech's Airbase platform for production deployment. Use the `deploy.sh` script:
 
@@ -144,7 +146,7 @@ Main collections:
 - `projects`: Document projects with metadata (in-progress)
 - `reports`: Generated ranking reports and results
 
-## Important Notes for Future Maintainers
+## Important Notes
 
 1. **Environment Variables**:
    `.env` - for local development (when running without Docker)
@@ -155,6 +157,12 @@ Main collections:
 3. **Authentication**: User authentication is handled by NextAuth.js with a custom credentials provider. Password hashing is managed with bcrypt.
 
 4. **Airbase Integration**: The project is configured for Airbase deployment through the `.airbase/airbase.link.json` configuration file.
+
+## Areas for Improvement
+
+1. Implement new Project Feature: Users may categorise their reports under Projects (e.g. all internship reports for a certain team / dept can be classified under one project)
+2. Improve the ranking algorithm - Think of how we can achieve greater relevance of the ranking results against what users are looking for
+3. Improve user experience - Display pairwise comparisons in the application so users can view the results in the app instead of downloading the CSV files
 
 ## Project Skeleton Structure
 
@@ -172,4 +180,49 @@ rankcentral-next/
 └── prod-deploy.sh        # Production deployment script
 ```
 
-For any questions or assistance, please contact the original development team.
+### Example Mergesort Process:
+
+**Initial Setup:**
+Documents: A, B, C, D, E
+
+**Mergesort Process:**
+Step 1: Divide into pairs and single elements
+
+Pair 1: A, B
+Pair 2: C, D
+Single: E
+
+Step 2: Sort the pairs
+
+Compare A vs B → B wins
+Compare C vs D → D wins
+Sorted pairs: [B, A] and [D, C], plus single element E
+
+Step 3: Merge pairs with single element
+First merge [B, A] with E:
+
+Compare B vs E → E wins
+Compare A vs E → E wins
+Result: [E, B, A]
+
+Step 4: Merge with remaining pair [D, C]
+Now merge [E, B, A] with [D, C]:
+
+Compare E vs D → E wins (E is first in final ranking)
+Compare B vs D → D wins
+Compare B vs C → C wins
+Compare A vs C → C wins
+Compare A vs D → A wins
+
+Final Ranking: E, D, C, B, A
+Total Comparisons Made:
+
+A vs B (B wins)
+C vs D (D wins)
+B vs E (E wins)
+A vs E (E wins)
+E vs D (E wins)
+B vs D (D wins)
+B vs C (C wins)
+A vs C (C wins)
+A vs D (A wins)
