@@ -111,6 +111,14 @@ export class ReportGenerator {
         }
       }
       
+      // Generate Condensed Pairwise Comparisons CSV
+      try {
+        const condensedCsvContent = this.exportCondensedPairwiseComparisonsToCSV(reportData);
+        csvFiles.push({ 'Condensed Pairwise Comparisons.csv': condensedCsvContent });
+      } catch (error) {
+        console.error('Error generating condensed pairwise comparisons CSV:', error);
+      }
+      
       // JSON export disabled as per requirements
       
       console.log(`Generated ${csvFiles.length} CSV export files`);
@@ -264,6 +272,51 @@ export class ReportGenerator {
       csv += values.join(',') + '\n';
     });
     
+    return csv;
+  }
+  
+  /**
+   * Exports a condensed pairwise comparison CSV with only Document A, Document B, and Detailed Reasoning columns.
+   * @param {ReportData} reportData - Report data containing criterion details
+   * @returns {string} CSV string with condensed pairwise comparison results
+   */
+  exportCondensedPairwiseComparisonsToCSV(reportData: ReportData): string {
+    const { criterionDetails } = reportData;
+    const headers = [
+      'No.',
+      'Document A',
+      'Document B',
+      'Detailed Reasoning'
+    ];
+    let csv = headers.join(',') + '\n';
+    if (!criterionDetails || criterionDetails.length === 0) {
+      csv += ',,,No comparison data available\n';
+      return csv;
+    }
+    criterionDetails.forEach((row, index) => {
+      // Extract document names
+      let documentA = '';
+      let documentB = '';
+      if (row['Comparison'] && typeof row['Comparison'] === 'string') {
+        const parts = row['Comparison'].split(' vs ');
+        if (parts.length === 2) {
+          documentA = parts[0].trim();
+          documentB = parts[1].trim();
+        }
+      } else {
+        documentA = row['Document A'] || '';
+        documentB = row['Document B'] || '';
+      }
+      // Get the detailed reasoning (may be in different fields depending on data structure)
+      const detailedReasoning = row['Detailed Reasoning'] || row['Reasoning'] || row['Comparative Analysis'] || 'No reasoning provided';
+      const values = [
+        index + 1,
+        this.formatCsvValue(documentA),
+        this.formatCsvValue(documentB),
+        this.formatCsvValue(detailedReasoning)
+      ];
+      csv += values.join(',') + '\n';
+    });
     return csv;
   }
   

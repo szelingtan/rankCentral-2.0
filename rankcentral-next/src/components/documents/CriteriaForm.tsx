@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
@@ -110,15 +109,14 @@ const CriteriaForm = ({
     );
   };
 
+  // In normalizeWeights, always normalize regardless of sum
   const normalizeWeights = (updatedCriteria: Criterion[]) => {
     const totalWeight = updatedCriteria.reduce((sum, c) => sum + c.weight, 0);
-    
-    if (totalWeight > 0 && totalWeight !== 100) {
+    if (totalWeight > 0) {
       const normalizedCriteria = updatedCriteria.map(c => ({
         ...c,
         weight: Math.round((c.weight / totalWeight) * 100)
       }));
-      
       const calculatedTotal = normalizedCriteria.reduce((sum, c) => sum + c.weight, 0);
       if (calculatedTotal !== 100 && normalizedCriteria.length > 0) {
         const diff = 100 - calculatedTotal;
@@ -128,7 +126,6 @@ const CriteriaForm = ({
           weight: lastItem.weight + diff
         };
       }
-      
       setCriteria(normalizedCriteria);
     }
   };
@@ -158,105 +155,94 @@ const CriteriaForm = ({
       )}
 
       {useCustomCriteria ? (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="text-md font-medium">Custom Criteria</h3>
-            <Button onClick={addCriterion} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-1" /> Add Criterion
+        <div className="space-y-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Custom Criteria</h3>
+            <Button type="button" variant="outline" size="sm" onClick={addCriterion} className="flex items-center gap-1">
+              <Plus className="h-4 w-4" /> Add Criterion
             </Button>
           </div>
-
-          {criteria.map((criterion) => (
-            <div
-              key={criterion.id}
-              className="p-4 border rounded-md bg-gray-50"
-            >
-              <div className="flex justify-between mb-3">
-                <div className="flex-1 mr-4">
-                  <Label htmlFor={`criterion-name-${criterion.id}`}>
-                    Criterion Name
-                  </Label>
-                  <Input
-                    id={`criterion-name-${criterion.id}`}
-                    value={criterion.name}
-                    onChange={(e) =>
-                      updateCriterion(criterion.id, 'name', e.target.value)
-                    }
-                    placeholder="e.g., Clarity, Relevance, etc."
+          <div className="text-xs text-gray-500 mb-4">
+            You can add, remove, and adjust the weights of your own criteria. The sum of weights does not need to be 100. Weights will be normalized automatically.
+          </div>
+          <div className="divide-y divide-gray-200 bg-white rounded-lg shadow-sm">
+            {criteria.map((criterion, idx) => (
+              <div key={criterion.id} className="p-4 flex flex-col gap-2 relative group hover:bg-gray-50 transition">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-base">{idx + 1}.</span>
+                    <Input
+                      value={criterion.name}
+                      onChange={(e) => updateCriterion(criterion.id, 'name', e.target.value)}
+                      placeholder="Criterion name (e.g., Clarity, Relevance)"
+                      className="w-48"
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeCriterion(criterion.id)}
+                    className="h-8 w-8 text-gray-400 hover:text-red-500 hover:bg-red-50 transition"
+                    title="Remove criterion"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="mb-2">
+                  <Label htmlFor={`criterion-desc-${criterion.id}`}>Description</Label>
+                  <Textarea
+                    id={`criterion-desc-${criterion.id}`}
+                    value={criterion.description}
+                    onChange={(e) => updateCriterion(criterion.id, 'description', e.target.value)}
+                    placeholder="Describe what this criterion measures..."
                     className="mt-1"
+                    rows={2}
                   />
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeCriterion(criterion.id)}
-                  className="h-8 w-8 mt-6"
-                >
-                  <Trash2 className="h-4 w-4 text-gray-500" />
-                </Button>
-              </div>
-
-              <div className="mb-3">
-                <Label htmlFor={`criterion-desc-${criterion.id}`}>
-                  Description
-                </Label>
-                <Textarea
-                  id={`criterion-desc-${criterion.id}`}
-                  value={criterion.description}
-                  onChange={(e) =>
-                    updateCriterion(
-                      criterion.id,
-                      'description',
-                      e.target.value
-                    )
-                  }
-                  placeholder="Describe what this criterion measures..."
-                  className="mt-1"
-                />
-              </div>
-
-              <div className="mb-1">
-                <div className="flex justify-between">
-                  <Label htmlFor={`criterion-weight-${criterion.id}`}>
-                    Weight
-                  </Label>
-                  <span className="text-sm text-gray-500">
-                    {criterion.weight}%
-                  </span>
+                <div className="mb-2">
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor={`criterion-weight-${criterion.id}`}>Weight</Label>
+                    <span className="text-sm text-gray-500">{criterion.weight}%</span>
+                  </div>
+                  <Input
+                    id={`criterion-weight-${criterion.id}`}
+                    type="number"
+                    min={1}
+                    max={200}
+                    value={criterion.weight}
+                    onChange={(e) => updateCriterion(criterion.id, 'weight', Number(e.target.value))}
+                    className="mt-2 w-24"
+                  />
+                  <div className="text-xs text-gray-500 mt-1">{
+                    'Assign any weight. Weights will be normalized to 100 for evaluation.'
+                  }</div>
                 </div>
-                <Slider
-                  id={`criterion-weight-${criterion.id}`}
-                  value={[criterion.weight]}
-                  min={5}
-                  max={100}
-                  step={5}
-                  onValueChange={(value) =>
-                    updateCriterion(criterion.id, 'weight', value[0])
-                  }
-                  className="mt-2"
-                />
-              </div>
-
-              {detailLevel === 'advanced' && (
-                <div className="mt-4 pt-4 border-t">
-                  <Label className="mb-2 block">Scoring Levels</Label>
-                  {[1, 2, 3, 4, 5].map((level) => (
-                    <div key={level} className="mb-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm w-6">{level}:</span>
-                        <Input
-                          value={criterion.scoring_levels?.[level] || ''}
-                          onChange={(e) => updateScoringLevel(criterion.id, level, e.target.value)}
-                          placeholder={`Description for level ${level}`}
-                          className="text-sm"
-                        />
+                {detailLevel === 'advanced' && (
+                  <div className="mt-4 pt-4 border-t">
+                    <Label className="mb-2 block">Scoring Levels</Label>
+                    {[1, 2, 3, 4, 5].map((level) => (
+                      <div key={level} className="mb-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-sm w-6">{level}:</span>
+                          <Input
+                            value={criterion.scoring_levels?.[level] || ''}
+                            onChange={(e) => updateScoringLevel(criterion.id, level, e.target.value)}
+                            placeholder={`Description for level ${level}`}
+                            className="text-sm"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end mt-4">
+            <div className="text-xs text-gray-500">
+              Total (pre-normalized) weights: {criteria.reduce((sum, c) => sum + c.weight, 0)}
             </div>
-          ))}
+          </div>
         </div>
       ) : (
         <div className="space-y-4">

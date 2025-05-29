@@ -148,6 +148,8 @@ export class PromptGenerator {
 		- Use specific examples from the text to support your evaluation
 		- Score each document on a scale of 1-5 (where 1 is poor and 5 is excellent)
 		- Determine a clear winner or declare a tie if truly equal
+		- Refer to the document names only, do not refer to them as Document A and Document B at all.
+		- Criterion Name is always Custom Evaluation
 		
 		Respond with a JSON object containing these fields:
 		{
