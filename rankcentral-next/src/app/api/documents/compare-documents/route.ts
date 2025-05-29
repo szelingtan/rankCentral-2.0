@@ -146,7 +146,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 					evaluation_method: evaluationMethod,
 					custom_prompt: evaluationMethod === 'prompt' ? customPrompt : "",
 					report_name: reportName || `Report ${new Date().toISOString().split('T')[0]}`,
-					api_key_status: apiKeyStatus
+					api_key_status: apiKeyStatus,
+					ranking: results // <-- Always store the ranking array
 				};
 
 				await reportsCollection.insertOne(reportDocument);

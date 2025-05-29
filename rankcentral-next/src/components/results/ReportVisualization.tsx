@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +28,8 @@ interface ReportVisualizationProps {
 }
 
 const ReportVisualization = ({ timestamp, reportName, documents, reportId }: ReportVisualizationProps) => {
+  // Debug: log props on mount
+  console.log('[ReportVisualization] props', { timestamp, reportName, documents, reportId });
   const [isLoading, setIsLoading] = useState(false);
   const [csvData, setCsvData] = useState<RankingData[]>([]);
   const [pairwiseData, setPairwiseData] = useState<PairwiseComparisonData[]>([]);
@@ -40,6 +41,8 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
   
   // Use React's useEffect to load data immediately when component mounts
   React.useEffect(() => {
+    // Debug: log effect trigger
+    console.log('[ReportVisualization] useEffect triggered for reportId', reportId);
     // Reset data when reportId changes to prevent showing stale data
     setCsvData([]);
     setPairwiseData([]);
@@ -52,27 +55,40 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
 
   const fetchReportData = async () => {
     if (hasLoadedData) {
+      console.log('[fetchReportData] Already loaded, skipping fetch.');
       return; // Don't fetch again if already loaded
     }
     
     setIsLoading(true);
     try {
-      console.log("Fetching data for report ID:", reportId);
+      console.log('[fetchReportData] Fetching data for report ID:', reportId);
       // Fetch data directly from the backend
       const response = await apiClient.getReportDetails(reportId);
-      console.log('Raw report data:', response.report);
-      console.log('Documents in report:', response.report?.documents);
-      console.log('Top ranked document:', (response.report as any)?.top_ranked);
+      console.log('[fetchReportData] Raw report data:', response.report);
+      console.log('[fetchReportData] Documents in report:', response.report?.documents);
+      console.log('[fetchReportData] Top ranked document:', (response.report as any)?.top_ranked);
       
       // Transform the report data into the format expected by the visualization component
-      console.log('Processing report data:', response.report);
+      console.log('[fetchReportData] Processing report data:', response.report);
       
-      // Check for documents in the report - this should contain the actual document names
-      if (response.report && Array.isArray((response.report as any).documents)) {
+      // Prefer backend ranking array if present
+      if (response.report && Array.isArray(response.report.ranking) && response.report.ranking.length > 0) {
+        // Use the ranking array as the source of truth
+        const formattedData: RankingData[] = response.report.ranking.map((doc: string, index: number) => {
+          const name = doc.split('/').pop() || doc || 'Unknown';
+          // Score is descending (higher rank = higher score)
+          const score = response.report.ranking.length - index;
+          return { name, score };
+        });
+        setCsvData(formattedData);
+        console.log('[fetchReportData] setCsvData (from ranking):', formattedData);
+      } else if (response.report && Array.isArray((response.report as any).documents)) {
         // Extract documents from the report itself
         const docs = (response.report as any).documents;
         // Use the top_ranked field to identify the highest ranked document
         const topRanked = (response.report as any).top_ranked || docs[0];
+        console.log('[fetchReportData] docs:', docs);
+        console.log('[fetchReportData] topRanked:', topRanked);
         
         // Create ranking data with document names as they appear in the documents array
         // The order in the documents array represents the ranking
@@ -82,13 +98,16 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
           // If this is the top ranked document, give it the highest score
           const finalScore = doc === topRanked ? docs.length + 1 : score;
           
+          const name = doc.split('/').pop() || doc || 'Unknown';
+          console.log(`[fetchReportData] RankingData: { name: ${name}, score: ${finalScore} }`);
           return {
-            name: doc.split('/').pop() || doc || 'Unknown',
+            name,
             score: finalScore
           };
         });
         
         setCsvData(formattedData);
+        console.log('[fetchReportData] setCsvData (from documents):', formattedData);
       } else if (response.report && response.report.results) {
         // If report has a results array with document rankings
         const formattedData: RankingData[] = response.report.results.map((item: any) => {
@@ -100,24 +119,29 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
             document = item.document || item.name || '';
             score = typeof item.score === 'number' ? item.score : 0;
           }
-          
+          const name = document.split('/').pop() || document || 'Unknown';
+          console.log(`[fetchReportData] RankingData (results): { name: ${name}, score: ${score} }`);
           return {
-            name: document.split('/').pop() || document || 'Unknown',
+            name,
             score
           };
         });
         setCsvData(formattedData);
+        console.log('[fetchReportData] setCsvData (from results):', formattedData);
       } else {
         // Fallback to empty array if report format is unknown
-        console.warn('Unknown report format:', response.report);
+        console.warn('[fetchReportData] Unknown report format:', response.report);
         // Create a safe default dataset
         const safeDefault: RankingData[] = documents.length > 0 
-          ? documents.map((doc, index) => ({
-              name: doc.split('/').pop() || `Document ${index + 1}`,
-              score: documents.length - index
-            }))
+          ? documents.map((doc, index) => {
+              const name = doc.split('/').pop() || `Document ${index + 1}`;
+              const score = documents.length - index;
+              console.log(`[fetchReportData] SafeDefault RankingData: { name: ${name}, score: ${score} }`);
+              return { name, score };
+            })
           : [{ name: 'No data available', score: 0 }];
         setCsvData(safeDefault);
+        console.log('[fetchReportData] setCsvData (safe default):', safeDefault);
       }
       
       // Try to get the top document explanation - removed since we're simplifying rankings tab
@@ -135,31 +159,37 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
           const reasoning = (result.evaluationDetails?.explanation || 
                            result.evaluation_details?.explanation ||
                            'No reasoning available.');
-          
+          console.log(`[fetchReportData] Pairwise: { doc1: ${doc1}, doc2: ${doc2}, winner: ${winner}, reasoning: ${reasoning} }`);
           return { doc1, doc2, winner, reasoning };
         });
         setPairwiseData(formattedPairwiseData);
+        console.log('[fetchReportData] setPairwiseData:', formattedPairwiseData);
       } catch (error) {
-        console.warn('Pairwise data not available:', error);
+        console.warn('[fetchReportData] Pairwise data not available:', error);
         // Generate sample pairwise data for demonstration
         const samplePairwise: PairwiseComparisonData[] = [];
         for (let i = 0; i < documents.length - 1; i++) {
           for (let j = i + 1; j < documents.length; j++) {
+            const doc1 = documents[i].split('/').pop() || documents[i];
+            const doc2 = documents[j].split('/').pop() || documents[j];
             samplePairwise.push({
-              doc1: documents[i].split('/').pop() || documents[i],
-              doc2: documents[j].split('/').pop() || documents[j],
-              winner: documents[i].split('/').pop() || documents[i],
+              doc1,
+              doc2,
+              winner: doc1,
               reasoning: "Sample reasoning for this comparison."
             });
+            console.log(`[fetchReportData] SamplePairwise: { doc1: ${doc1}, doc2: ${doc2}, winner: ${doc1} }`);
           }
         }
         setPairwiseData(samplePairwise);
+        console.log('[fetchReportData] setPairwiseData (sample):', samplePairwise);
       }
       
       setHasLoadedData(true);
+      console.log('[fetchReportData] setHasLoadedData(true)');
       
     } catch (error) {
-      console.error('Error fetching report data:', error instanceof Error ? error.message : String(error));
+      console.error('[fetchReportData] Error fetching report data:', error instanceof Error ? error.message : String(error));
       
       // Show a detailed error message to the user
       toast({
@@ -171,14 +201,18 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
       });
       
       // Generate sample data for demonstration if API fails
-      const sampleData: RankingData[] = documents.map(doc => ({
-        name: doc.split('/').pop() || doc,
-        score: Math.floor(Math.random() * 100),
-      }));
+      const sampleData: RankingData[] = documents.map(doc => {
+        const name = doc.split('/').pop() || doc;
+        const score = Math.floor(Math.random() * 100);
+        console.log(`[fetchReportData] SampleData: { name: ${name}, score: ${score} }`);
+        return { name, score };
+      });
       setCsvData(sampleData);
+      console.log('[fetchReportData] setCsvData (sample):', sampleData);
       
     } finally {
       setIsLoading(false);
+      console.log('[fetchReportData] setIsLoading(false)');
     }
   };
 
@@ -227,6 +261,7 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
     }
   };
 
+  // Debug: show csvData in UI for quick inspection
   return (
     <Card className="w-full mt-4">
       <CardHeader>
