@@ -43,9 +43,10 @@ export class ReportGenerator {
    * Create a set of CSV files from report data
    * @param reportData - Report data to convert to CSV files
    * @param folderName - Optional name for the virtual folder
+   * @param documentsOrder - Order of documents from merge sort (for unified ranking)
    * @returns Array of objects containing filename and content
    */
-  createCsvFiles(reportData: ReportData, folderName: string = "csv_reports"): CsvFile[] {
+  createCsvFiles(reportData: ReportData, folderName: string = "csv_reports", documentsOrder?: string[]): CsvFile[] {
     try {
       // Input validation
       if (!reportData) {
@@ -71,7 +72,7 @@ export class ReportGenerator {
       // Generate Report Summary CSV (final rankings of all documents)
       if (reportData.winCounts && typeof reportData.winCounts === 'object') {
         try {
-          const csvContent = this.exportReportSummaryToCSV(reportData);
+          const csvContent = this.exportReportSummaryToCSV(reportData, documentsOrder);
           csvFiles.push({ [`${SHEET_NAMES.summary}.csv`]: csvContent });
         } catch (error) {
           console.error('Error generating report summary CSV:', error);
@@ -107,16 +108,27 @@ export class ReportGenerator {
 
   /**
    * Export report summary to CSV format (final rankings of all documents)
+   * Now uses the same ranking order as the UI (merge sort results)
    */
-  exportReportSummaryToCSV(reportData: ReportData): string {
+  exportReportSummaryToCSV(reportData: ReportData, documentsOrder?: string[]): string {
+    let csv = 'Rank,Document\n';
+
+    // Use the documents array order if provided (this comes from merge sort results)
+    if (documentsOrder && documentsOrder.length > 0) {
+      documentsOrder.forEach((document, index) => {
+        const docValue = this.formatCsvValue(document);
+        csv += `${index + 1},${docValue}\n`;
+      });
+      return csv;
+    }
+
+    // Fallback to win counts for backward compatibility (though this should not be used)
     const { winCounts } = reportData;
     if (!winCounts) {
       return '';
     }
-    
-    let csv = 'Rank,Document\n';
 
-    // Get sorted documents by win count
+    // Get sorted documents by win count (fallback method)
     const sortedEntries = Object.entries(winCounts)
       .sort(([, countA], [, countB]) => countB - countA);
     
@@ -176,9 +188,11 @@ export class ReportGenerator {
       // Get criterion name - use criterionName if available, otherwise check if the evaluation method is prompt-based
       let criterion = row['Criterion Name'] || row['criterionName'] || 'Unknown Criterion';
       
-      // If this is using a prompt-based evaluation, show the prompt instead
+      // For custom prompt evaluations, keep the criterion name consistent with UI ranking
+      // Don't replace with the actual prompt text to maintain ranking consistency
       if (row['evaluationMethod'] === 'prompt' || (reportData as any).evaluationMethod === 'prompt') {
-        criterion = row['customPrompt'] || (reportData as any).customPrompt || criterion;
+        // Use consistent criterion name for custom prompt evaluations
+        criterion = 'Custom Evaluation';
       }
 
       // Extract document names

@@ -7,6 +7,7 @@ import { BarChart2, ListOrdered, Download } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import ExportTab from './ExportTab';
 import ApiClient from '@/lib/comparison/apiClient';
+import { ReportData } from '@/lib/types';
 
 interface RankingData {
   name: string;
@@ -61,17 +62,17 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
       const response = await apiClient.getReportDetails(reportId);
       console.log('Raw report data:', response.report);
       console.log('Documents in report:', response.report?.documents);
-      console.log('Top ranked document:', response.report?.top_ranked);
+      console.log('Top ranked document:', (response.report as any)?.top_ranked);
       
       // Transform the report data into the format expected by the visualization component
       console.log('Processing report data:', response.report);
       
       // Check for documents in the report - this should contain the actual document names
-      if (response.report && Array.isArray(response.report.documents)) {
+      if (response.report && Array.isArray((response.report as any).documents)) {
         // Extract documents from the report itself
-        const docs = response.report.documents;
+        const docs = (response.report as any).documents;
         // Use the top_ranked field to identify the highest ranked document
-        const topRanked = response.report.top_ranked || docs[0];
+        const topRanked = (response.report as any).top_ranked || docs[0];
         
         // Create ranking data with document names as they appear in the documents array
         // The order in the documents array represents the ranking
@@ -119,25 +120,9 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
         setCsvData(safeDefault);
       }
       
-      // Try to get the top document explanation
-      try {
-        const explanationResponse = await apiClient.getTopDocumentExplanation(reportId);
-        if (explanationResponse.success && typeof explanationResponse.explanation === 'string') {
-          setExplanationText(explanationResponse.explanation);
-        } else {
-          // If no explanation is available, generate one based on the ranking data
-          const topDocument = csvData.length > 0 ? csvData.sort((a, b) => b.score - a.score)[0] : null;
-          if (topDocument) {
-            setExplanationText(`${topDocument.name} was ranked first based on its overall performance across all evaluation criteria.`);
-          } else {
-            setExplanationText('No explanation available for the top-ranked document.');
-          }
-        }
-      } catch (error) {
-        console.warn('Explanation data not available:', error instanceof Error ? error.message : String(error));
-        // Provide a generic explanation
-        setExplanationText('The top document was ranked first based on its overall performance across all criteria.');
-      }
+      // Try to get the top document explanation - removed since we're simplifying rankings tab
+      // We no longer show explanations in the rankings tab
+      setExplanationText('');
       
       // Try to get pairwise comparison data
       try {
@@ -281,15 +266,8 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
               </div>
             ) : (
               <div className="space-y-6">
-                {explanationText && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                    <h3 className="font-semibold text-blue-800 mb-2">Why the Top Document Ranks First</h3>
-                    <p className="text-sm text-gray-700">{explanationText}</p>
-                  </div>
-                )}
-                
                 <div className="space-y-4">
-                  <h3 className="font-medium text-lg">Final Rankings</h3>
+                  <h3 className="font-medium text-lg">Document Rankings</h3>
                   <div className="border rounded-lg overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -299,32 +277,30 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {csvData
-                          .sort((a, b) => b.score - a.score)
-                          .map((row, index) => (
-                            <TableRow key={index} className={index === 0 ? "bg-green-50" : ""}>
-                              <TableCell className="font-bold">
-                                <div className={`
-                                  flex items-center justify-center w-8 h-8 rounded-full text-white text-sm font-bold
-                                  ${index === 0 ? 'bg-green-500' : index === 1 ? 'bg-blue-500' : index === 2 ? 'bg-orange-500' : 'bg-gray-500'}
-                                `}>
-                                  {index + 1}
-                                </div>
-                              </TableCell>
-                              <TableCell className="font-medium">
-                                <div className="flex items-center gap-2">
-                                  <span className="truncate max-w-xs md:max-w-md" title={row.name}>
-                                    {row.name}
+                        {csvData.map((row, index) => (
+                          <TableRow key={index} className={index === 0 ? "bg-green-50" : ""}>
+                            <TableCell className="font-bold">
+                              <div className={`
+                                flex items-center justify-center w-8 h-8 rounded-full text-white text-sm font-bold
+                                ${index === 0 ? 'bg-green-500' : index === 1 ? 'bg-blue-500' : index === 2 ? 'bg-orange-500' : 'bg-gray-500'}
+                              `}>
+                                {index + 1}
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                <span className="truncate max-w-xs md:max-w-md" title={row.name}>
+                                  {row.name}
+                                </span>
+                                {index === 0 && (
+                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex-shrink-0">
+                                    Top Ranked
                                   </span>
-                                  {index === 0 && (
-                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex-shrink-0">
-                                      Top Ranked
-                                    </span>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                       </TableBody>
                     </Table>
                   </div>

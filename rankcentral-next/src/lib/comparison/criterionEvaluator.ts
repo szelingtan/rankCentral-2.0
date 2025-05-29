@@ -25,9 +25,10 @@ export class CriterionEvaluator {
 			console.log(`Sending prompt to ${this.modelName} (first 4 chars of API key: ${this.openaiApiKey.slice(0, 4)}...)`);
 
 			const response = await openai.chat.completions.create({
-				temperature: 0.2,
+				temperature: 0,
 				max_tokens: maxTokens,
 				model: this.modelName,
+				seed: 42, // Fixed seed for deterministic results
 				messages: [
 					{ role: "user", content: prompt }
 				]
@@ -92,13 +93,21 @@ export class CriterionEvaluator {
 	}
 
 	normalizeWinner(winner: string): "A" | "B" | "Tie" | "N/A" {
-		if (!winner) return "N/A";
+		if (!winner) {
+			return "N/A";
+		}
 
 		const normalizedWinner = winner.toUpperCase();
 
-		if (normalizedWinner === "A" || normalizedWinner === "DOCUMENT A") return "A";
-		if (normalizedWinner === "B" || normalizedWinner === "DOCUMENT B") return "B";
-		if (normalizedWinner === "TIE" || normalizedWinner === "EQUAL" || normalizedWinner === "DRAW") return "Tie";
+		if (normalizedWinner === "A" || normalizedWinner === "DOCUMENT A") {
+			return "A";
+		}
+		if (normalizedWinner === "B" || normalizedWinner === "DOCUMENT B") {
+			return "B";
+		}
+		if (normalizedWinner === "TIE" || normalizedWinner === "EQUAL" || normalizedWinner === "DRAW") {
+			return "Tie";
+		}
 
 		return "N/A";
 	}

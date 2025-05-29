@@ -303,9 +303,8 @@ const Documents = () => {
               {/* Security Notice */}
               <Alert className="border-amber-200 bg-amber-50">
                 <Shield className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-amber-800">
-                  <strong>Security Notice:</strong> Please ensure that documents uploaded are classified as <strong>Sensitive Normal</strong> and below only. 
-                  Do not upload documents containing highly sensitive, confidential, or classified information.
+                <AlertDescription className="text-amber-800 flex items-center gap-1 pt-0.5">
+                  <span className="font-bold">Security Notice:</span> Please only upload data up to <strong>Sensitive Normal</strong>.
                 </AlertDescription>
               </Alert>
 

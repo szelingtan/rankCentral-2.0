@@ -111,8 +111,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 			reportName || "Report"
 		);
 		
-		// Convert the report data into CSV files
-		const csvFiles = reportGenerator.createCsvFiles(reportData, reportName || "csv_reports");
+		// Convert the report data into CSV files - pass the sorted documents order for unified ranking
+		const csvFiles = reportGenerator.createCsvFiles(reportData, reportName || "csv_reports", results);
 		
 		// Format the CSV files for MongoDB storage - convert from array of objects to array of formatted objects
 		const formattedCsvFiles = csvFiles.map(csvFile => {
