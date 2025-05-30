@@ -55,15 +55,10 @@ npm install
 Create a `.env` file in the root directory with the following variables:
 
 ```env
-# MongoDB Connection
-MONGODB_URI=mongodb://localhost:27017/rankcentral
-
-# NextAuth Configuration
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your_nextauth_secret
-
-# OpenAI API Key (for AI ranking)
-OPENAI_API_KEY=your_openai_api_key
+MONGODB_URI=
+OPENAI_API_KEY=
+NEXTAUTH_SECRET=cebf75fbbce4d03b3ffedf23f95315300a1de26273fdcf3c3321148acd7614e6
+MONGODB_DB=rankcentral
 ```
 
 The .env file is intentionally gitignored to prevent committing sensitive environment variables. Please maintain this configuration.
