@@ -180,13 +180,12 @@ rankcentral-next/
 └── prod-deploy.sh        # Production deployment script
 ```
 
-### Example Mergesort Process:
+### Example Ranking Process:
 
 **Initial Setup:**
 Documents: A, B, C, D, E
 
-**Mergesort Process:**
-Step 1: Divide into pairs and single elements
+Step 1: Form pairs / single elements
 
 Pair 1: A, B
 
