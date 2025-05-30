@@ -189,40 +189,35 @@ Documents: A, B, C, D, E
 Step 1: Divide into pairs and single elements
 
 Pair 1: A, B
+
 Pair 2: C, D
+
 Single: E
 
 Step 2: Sort the pairs
 
 Compare A vs B → B wins
+
 Compare C vs D → D wins
+
 Sorted pairs: [B, A] and [D, C], plus single element E
 
 Step 3: Merge pairs with single element
+
 First merge [B, A] with E:
 
 Compare B vs E → E wins
-Compare A vs E → E wins
+
 Result: [E, B, A]
 
-Step 4: Merge with remaining pair [D, C]
-Now merge [E, B, A] with [D, C]:
+Step 4: Merge [E, B, A] with remaining pair [D, C]
 
 Compare E vs D → E wins (E is first in final ranking)
+
 Compare B vs D → D wins
-Compare B vs C → C wins
+
+Compare B vs C → B wins
+
 Compare A vs C → C wins
-Compare A vs D → A wins
 
-Final Ranking: E, D, C, B, A
-Total Comparisons Made:
-
-A vs B (B wins)
-C vs D (D wins)
-B vs E (E wins)
-A vs E (E wins)
-E vs D (E wins)
-B vs D (D wins)
-B vs C (C wins)
-A vs C (C wins)
-A vs D (A wins)
+Final Ranking: E, D, B, C, A
