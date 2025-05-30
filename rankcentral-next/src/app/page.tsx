@@ -207,7 +207,7 @@ export default function HomePage() {
 				<div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
 					<div className="mb-4 md:mb-0">
 						<RankCentralLogo className="text-white" />
-						<p className="text-gray-400 mt-2">© 2025 rankCentral. Central Provident Fund Board.</p>
+						<p className="text-gray-400 mt-2">© 2025 rankCentral.</p>
 					</div>
 				</div>
 			</footer>
