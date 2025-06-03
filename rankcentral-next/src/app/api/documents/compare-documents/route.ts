@@ -1,31 +1,21 @@
 // src/app/api/documents/compare/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import fs from 'fs';
 import path from 'path';
 import { PDFProcessor } from '@/lib/comparison/pdfProcessor';
 import { CriteriaManager } from '@/lib/comparison/criteriaManager';
 import { ComparisonEngine } from '@/lib/comparison/comparisonEngine';
-import { getUploadDir } from '@/lib/utils/file-utils';
-import { connectToDatabase } from '@/lib/db/mongodb';
 import { getReportId } from '@/lib/utils/report-utils';
 import { ReportGenerator } from '@/lib/comparison/reportGenerator';
 
-const uploadDir = await getUploadDir();
+// Simple upload directory that doesn't require user authentication
+const uploadDir = path.join(process.cwd(), 'tmp', 'uploads');
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
 	try {
-		const session = await getServerSession(authOptions);
-		if (!session?.user) {
-			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-		}
-
-		const userId = session.user.id;
 		const data = await req.json();
 
-		const id = data.id;
 		const criteriaData = data.criteria || [];
 		const evaluationMethod = data.evaluationMethod || 'criteria';
 		const customPrompt = data.customPrompt || '';
@@ -48,76 +38,92 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 			);
 		}
 
-		const userUploadDir = path.join(uploadDir, userId);
-		if (!fs.existsSync(userUploadDir)) {
-			fs.mkdirSync(userUploadDir, { recursive: true });
+		// Ensure upload directory exists
+		if (!fs.existsSync(uploadDir)) {
+			fs.mkdirSync(uploadDir, { recursive: true });
 		}
 
 		const pdfProcessor = new PDFProcessor();
 		const criteriaManager = new CriteriaManager();
 
+		// Add criteria to the manager using the correct method
 		if (evaluationMethod === 'criteria') {
-			criteriaManager.criteria = criteriaData;
-		} else {
-			criteriaManager.criteria = [{
-				id: "custom",
-				name: "Custom Evaluation",
-				description: customPrompt,
-				weight: 100,
-				isCustomPrompt: true
-			}];
+			criteriaData.forEach((criterion: { name: string; weight: number; description: string }) => {
+				criteriaManager.addCriterion(criterion.name, criterion.description, criterion.weight);
+			});
 		}
 
-		const pdfContents: Record<string, string> = {};
-		for (const doc of documentsData) {
-			console.log(doc)
-			const docName = doc.displayName;
-			const docContent = doc.content;
+		// If no criteria provided or using prompt method, use default criteria
+		if (criteriaManager.criteria.length === 0) {
+			criteriaManager.criteria = criteriaManager.defaultCriteria;
+		}
 
-			if (
-				docContent.startsWith('data:application/pdf;base64') ||
-				(docContent.length > 100 && !/^[a-zA-Z]/.test(docContent.trim().substring(0, 20)))
-			) {
+		console.log(`Processing ${documentsData.length} documents...`);
+
+		const documentsMap: { [key: string]: string } = {};
+		const docList: string[] = [];
+
+		// Process documents
+		for (const doc of documentsData) {
+			let documentContent = '';
+
+			// Handle base64 PDF content
+			if (doc.content && doc.content.startsWith('data:application/pdf;base64,')) {
 				try {
-					console.log(`Processing base64 PDF: ${docName}`);
-					const extractedText = await pdfProcessor.loadBase64PDF(docName, docContent);
-					pdfContents[docName] = extractedText;
-					console.log(`Loaded base64 PDF: ${docName} (${extractedText.length} characters)`);
-				} catch (e) {
-					console.error(`Error processing base64 PDF: ${e}`);
-					pdfContents[docName] = docContent;
+					const base64Data = doc.content.split(',')[1];
+					const tempFileName = `temp_${Date.now()}_${Math.random().toString(36).substring(2)}.pdf`;
+					const tempFilePath = path.join(uploadDir, tempFileName);
+
+					const buffer = Buffer.from(base64Data, 'base64');
+					fs.writeFileSync(tempFilePath, buffer);
+
+					// Read the file as ArrayBuffer for PDFProcessor
+					const fileBuffer = fs.readFileSync(tempFilePath);
+					const arrayBuffer = fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength);
+					documentContent = await pdfProcessor.extractTextFromPDF(arrayBuffer);
+
+					// Clean up temporary file
+					fs.unlinkSync(tempFilePath);
+				} catch (error) {
+					console.error(`Error processing PDF for ${doc.displayName}:`, error);
+					documentContent = `Error processing PDF: ${error}`;
 				}
 			} else {
-				pdfContents[docName] = docContent;
+				// Handle plain text content
+				documentContent = doc.content || '';
 			}
+
+			const docName = doc.displayName || `Document ${docList.length + 1}`;
+			documentsMap[docName] = documentContent;
+			docList.push(docName);
 		}
 
+		// Create comparison engine with proper constructor parameters
 		const comparisonEngine = new ComparisonEngine(
-			pdfContents,
+			documentsMap,
 			criteriaManager.criteria,
 			apiKey,
 			pdfProcessor,
-			evaluationMethod === 'prompt'
+			evaluationMethod === 'prompt' // useCustomPrompt
 		);
 
-		const docList = Object.keys(pdfContents);
+		// Perform comparison using the correct method
 		const results = await comparisonEngine.compareWithMergesort(docList);
 
-		// Generate CSV reports using ReportGenerator
+		console.log("Comparison completed. Results:", results);
+
+		// Generate CSV files for the report
 		const reportGenerator = new ReportGenerator();
 		const reportData = await reportGenerator.generateReport(
 			docList,
 			comparisonEngine.comparisonResults,
 			reportName || "Report",
-			results // Pass the merge sort results directly to generate report
+			results
 		);
-		
-		// Convert the report data into CSV files - pass the sorted documents order for unified ranking
-		const csvFiles = reportGenerator.createCsvFiles(reportData, reportName || "csv_reports", results);
-		
-		// Format the CSV files for MongoDB storage - convert from array of objects to array of formatted objects
-		const formattedCsvFiles = csvFiles.map(csvFile => {
-			// Each csvFile is an object with a single key-value pair (filename:content)
+		const csvFiles = reportGenerator.createCsvFiles(reportData, "csv_reports", results);
+
+		// Format the CSV files for response - fix the typing
+		const formattedCsvFiles = csvFiles.map((csvFile: Record<string, string>) => {
 			const filename = Object.keys(csvFile)[0];
 			const content = csvFile[filename];
 			return { filename, content };
@@ -125,59 +131,42 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
 		const reportId = getReportId();
 		const timestamp = new Date().toISOString();
-		const conn = await connectToDatabase();
 
-		if (conn) {
-			try {
-				const reportsCollection = conn.db.collection('reports');
+		const apiKeyStatus = apiKey.length > 20
+			? "Valid API key"
+			: "Invalid or missing API key";
 
-				const apiKeyStatus = apiKey.length > 20
-					? "Valid API key"
-					: "Invalid or missing API key";
-
-				const reportDocument = {
-					user_id: userId,
-					report_id: reportId,
-					timestamp: timestamp,
-					documents: docList,
-					top_ranked: results[0] || null,
-					csv_files: formattedCsvFiles,  // Store CSV files in the formatted structure
-					criteria_count: criteriaManager.criteria.length,
-					evaluation_method: evaluationMethod,
-					custom_prompt: evaluationMethod === 'prompt' ? customPrompt : "",
-					report_name: reportName || `Report ${new Date().toISOString().split('T')[0]}`,
-					api_key_status: apiKeyStatus,
-					ranking: results // <-- Always store the ranking array
-				};
-
-				await reportsCollection.insertOne(reportDocument);
-
-				const allReports = await reportsCollection
-					.find({ user_id: userId })
-					.sort({ timestamp: -1 })
-					.toArray();
-
-				if (allReports.length > 5) {
-					const reportsToDelete = allReports.slice(5);
-					const reportIds = reportsToDelete.map(report => report._id);
-					await reportsCollection.deleteMany({ _id: { $in: reportIds } });
-				}
-			} catch (e) {
-				console.error(`Error storing report history: ${e}`);
-			}
-		}
+		// Return report data for client-side storage
+		const reportDocument = {
+			_id: reportId,
+			report_id: reportId,
+			timestamp: timestamp,
+			documents: docList,
+			top_ranked: results[0] || null,
+			csv_files: formattedCsvFiles,
+			criteria_count: criteriaManager.criteria.length,
+			evaluation_method: evaluationMethod,
+			custom_prompt: evaluationMethod === 'prompt' ? customPrompt : "",
+			report_name: reportName || `Report ${new Date().toISOString().split('T')[0]}`,
+			api_key_status: apiKeyStatus,
+			ranking: results
+		};
 
 		return NextResponse.json({
 			success: true,
 			message: "Comparison completed successfully",
 			ranked_documents: results,
 			comparison_details: comparisonEngine.comparisonResults,
-			report_id: reportId
+			report_id: reportId,
+			report_data: reportDocument
 		});
-	} catch (error) {
+	} catch (error: any) {
 		console.error("Error in document comparison:", error);
 		return NextResponse.json(
-			{ error: `Error during comparison: ${error}` },
+			{ 
+				error: "An error occurred during document comparison",
+				details: error.message || "Unknown error"
+			},
 			{ status: 500 }
 		);
 	}

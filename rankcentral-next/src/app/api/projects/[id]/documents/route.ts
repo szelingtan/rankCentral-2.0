@@ -1,258 +1,97 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import mongoose from 'mongoose';
-import { Project } from '@/models/Project';
-import { connectToDatabase } from '@/lib/db/mongodb';
-import fs from 'fs';
-import path from 'path';
 
-// Define interface for project documents
-interface ProjectDocument {
-    _id: string;
-    name: string;
-    description: string;
-    userId: string;
-    createdAt: Date;
-    lastUpdated: Date;
-    status: 'active' | 'completed' | 'archived';
-    documents: string[];
-    reports: string[];
-    __v: number;
-}
-
-// GET /api/projects/[id]/documents - Get all documents for a project
+/**
+ * GET /api/projects/[id]/documents - Session storage instruction endpoint
+ * This endpoint no longer connects to databases or requires authentication.
+ * All project document data is now stored in browser session storage.
+ */
 export async function GET(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-    try {
-    // Get the user session
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "You must be logged in to view project documents" },
-        { status: 401 }
-      );
-    }
-    
-    // Await params before accessing its properties (Next.js 15 requirement)
+  try {
     const { id } = await params;
-    
-    // Connect to the database
-    await connectToDatabase();
-    
-    // Check if the ID is valid
-    if (!mongoose.isValidObjectId(id)) {
-      return NextResponse.json(
-        { error: "Invalid project ID" },
-        { status: 400 }
-      );
-    }
-    
-    // Find the project - remove .lean() to get a full Mongoose document
-    const project = await Project.findOne({
-      _id: id,
-      userId: session.user.id
-    }) as unknown as ProjectDocument;
-    
-    if (!project) {
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 }
-      );
-    }
-    
-    // Return the document paths
+
     return NextResponse.json({
-      documents: project.documents,
-      count: project.documents.length
+      success: false,
+      message: "Project documents are now stored in session storage. Please check your browser's session storage for project data.",
+      projectId: id,
+      instruction: "Use SessionStorageManager.getProjects() to retrieve project document data from session storage"
     });
-    
   } catch (error) {
-    console.error('Error fetching project documents:', error);
+    console.error('Error in project documents API:', error);
     return NextResponse.json(
-      { error: "Failed to fetch project documents" },
+      { 
+        success: false, 
+        error: 'Project documents retrieval error',
+        message: "Project data is stored in session storage. Use SessionStorageManager.getProjects() instead."
+      },
       { status: 500 }
     );
   }
 }
 
-// POST /api/projects/[id]/documents - Add documents to a project
+/**
+ * POST /api/projects/[id]/documents - Session storage instruction endpoint
+ * This endpoint instructs clients to add documents to projects in session storage.
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Get the user session
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "You must be logged in to add documents to projects" },
-        { status: 401 }
-      );
-    }
-    
-    // Await params before accessing its properties (Next.js 15 requirement)
     const { id } = await params;
-    
-    // Connect to the database
-    await connectToDatabase();
-    
-    // Check if the ID is valid
-    if (!mongoose.isValidObjectId(id)) {
-      return NextResponse.json(
-        { error: "Invalid project ID" },
-        { status: 400 }
-      );
-    }
-    
-    // Parse the request body
     const body = await request.json();
     
-    if (!body.documents || !Array.isArray(body.documents) || body.documents.length === 0) {
-      return NextResponse.json(
-        { error: "Documents array is required and must not be empty" },
-        { status: 400 }
-      );
-    }
-    
-    // Find the project
-    const project = await Project.findOne({
-      _id: id,
-      userId: session.user.id
-    }) as unknown as ProjectDocument & { save: () => Promise<ProjectDocument> };
-    
-    if (!project) {
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 }
-      );
-    }
-    
-    // Validate that each document path exists
-    const validDocuments = [];
-    
-    for (const docPath of body.documents) {
-      try {
-        // This would need to be adjusted based on your storage solution
-        // For local file system:
-        const fullPath = path.resolve(process.cwd(), docPath);
-        
-        if (fs.existsSync(fullPath)) {
-          validDocuments.push(docPath);
-        }
-      } catch (err) {
-        console.warn(`Document path validation failed for ${docPath}:`, err);
-      }
-    }
-    
-    if (validDocuments.length === 0) {
-      return NextResponse.json(
-        { error: "No valid document paths provided" },
-        { status: 400 }
-      );
-    }
-    
-    // Add documents to the project (avoiding duplicates)
-    const updatedDocuments = [...new Set([...project.documents, ...validDocuments])];
-    
-    // Update the project
-    project.documents = updatedDocuments;
-    project.lastUpdated = new Date();
-    await project.save();
-    
     return NextResponse.json({
-      message: `${validDocuments.length} documents added to project`,
-      documents: project.documents,
-      count: project.documents.length
+      success: false,
+      message: "Project document management is now handled in session storage. Use SessionStorageManager.updateProject() to add documents.",
+      projectId: id,
+      instruction: "Use SessionStorageManager.updateProject() to modify project documents in session storage",
+      providedData: body
     });
     
   } catch (error) {
-    console.error('Error adding documents to project:', error);
+    console.error('Error in project documents POST API:', error);
     return NextResponse.json(
-      { error: "Failed to add documents to project" },
+      { 
+        success: false,
+        error: "Project document management error",
+        message: "Project documents are managed in session storage. Use SessionStorageManager.updateProject() instead."
+      },
       { status: 500 }
     );
   }
 }
 
-// DELETE /api/projects/[id]/documents - Remove documents from a project
+/**
+ * DELETE /api/projects/[id]/documents - Session storage instruction endpoint
+ * This endpoint instructs clients to remove documents from projects in session storage.
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Get the user session
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "You must be logged in to remove documents from projects" },
-        { status: 401 }
-      );
-    }
-    
-    // Await params before accessing its properties (Next.js 15 requirement)
     const { id } = await params;
-    
-    // Connect to the database
-    await connectToDatabase();
-    
-    // Check if the ID is valid
-    if (!mongoose.isValidObjectId(id)) {
-      return NextResponse.json(
-        { error: "Invalid project ID" },
-        { status: 400 }
-      );
-    }
-    
-    // Parse the request body
     const body = await request.json();
     
-    if (!body.documents || !Array.isArray(body.documents) || body.documents.length === 0) {
-      return NextResponse.json(
-        { error: "Documents array is required and must not be empty" },
-        { status: 400 }
-      );
-    }
-    
-    // Find the project
-    const project = await Project.findOne({
-      _id: id,
-      userId: session.user.id
-    }) as unknown as ProjectDocument & { save: () => Promise<ProjectDocument> };
-    
-    if (!project) {
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 }
-      );
-    }
-    
-    // Remove the specified documents
-    const documentsToRemove = new Set(body.documents);
-    const updatedDocuments = project.documents.filter(
-      (doc: string) => !documentsToRemove.has(doc)
-    );
-    
-    // Update the project
-    project.documents = updatedDocuments;
-    project.lastUpdated = new Date();
-    await project.save();
-    
     return NextResponse.json({
-      message: `${project.documents.length - updatedDocuments.length} documents removed from project`,
-      documents: project.documents,
-      count: project.documents.length
+      success: false,
+      message: "Project document removal is now handled in session storage. Use SessionStorageManager.updateProject() to remove documents.",
+      projectId: id,
+      instruction: "Use SessionStorageManager.updateProject() to remove project documents in session storage",
+      providedData: body
     });
     
   } catch (error) {
-    console.error('Error removing documents from project:', error);
+    console.error('Error in project documents DELETE API:', error);
     return NextResponse.json(
-      { error: "Failed to remove documents from project" },
+      { 
+        success: false,
+        error: "Project document removal error",
+        message: "Project documents are managed in session storage. Use SessionStorageManager.updateProject() instead."
+      },
       { status: 500 }
     );
   }

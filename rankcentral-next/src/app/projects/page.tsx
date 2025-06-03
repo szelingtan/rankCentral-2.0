@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { 
   Plus, 
@@ -32,6 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
+import { SessionStorageManager } from '@/lib/sessionStorage';
 
 // Example projects (for demonstration only)
 const EXAMPLE_PROJECTS = [
@@ -71,7 +71,6 @@ const EXAMPLE_PROJECTS = [
 ];
 
 export default function ProjectsPage() {
-  const { data: session } = useSession();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -85,8 +84,38 @@ export default function ProjectsPage() {
 
   // Load projects on component mount
   useEffect(() => {
-    setIsLoading(false); // Only show loading for a moment
+    loadUserProjects();
   }, []);
+
+  const loadUserProjects = () => {
+    try {
+      const sessionProjects = SessionStorageManager.getProjects();
+      
+      // Convert SessionProject format to display format
+      const displayProjects = sessionProjects.map(project => ({
+        id: project._id,
+        name: project.name,
+        description: project.description || 'No description provided',
+        createdAt: project.createdAt,
+        lastUpdated: project.lastUpdated,
+        documentsCount: project.documents.length,
+        reportsCount: project.reports.length,
+        status: project.status,
+        isExample: false,
+      }));
+      
+      setUserProjects(displayProjects);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+      toast({
+        title: "Error loading projects",
+        description: "Could not load your projects from session storage",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Combine example and user projects for display
   const allProjects = [...userProjects, ...EXAMPLE_PROJECTS];
@@ -124,19 +153,28 @@ export default function ProjectsPage() {
       setIsLoading(true);
       
       const newProject = {
-        id: `${Date.now()}`,
+        _id: `project_${Date.now()}`,
         name: newProjectName.trim(),
         description: newProjectDescription.trim() || 'No description provided',
         createdAt: new Date().toISOString(),
         lastUpdated: new Date().toISOString(),
-        documentsCount: 0,
-        reportsCount: 0,
-        status: 'active',
-        isExample: false,
+        status: 'active' as const,
+        documents: [],
         reports: [],
       };
       
-      setUserProjects([newProject, ...userProjects]);
+      // Save project to session storage
+      SessionStorageManager.saveProject(newProject);
+      
+      // Update local state with display format
+      const displayProject = {
+        ...newProject,
+        id: newProject._id,
+        documentsCount: 0,
+        reportsCount: 0,
+        isExample: false,
+      };
+      setUserProjects([displayProject, ...userProjects]);
       
       setShowNewProjectDialog(false);
       setNewProjectName('');
@@ -158,20 +196,43 @@ export default function ProjectsPage() {
   };
 
   const handleDeleteProject = (projectId: string, projectName: string) => {
-    setUserProjects(userProjects.filter(p => p.id !== projectId));
-    
-    toast({
-      title: "Project deleted",
-      description: `"${projectName}" has been deleted.`,
-    });
+    try {
+      // Remove from session storage (using the project ID which corresponds to _id in session storage)
+      SessionStorageManager.deleteProject(projectId);
+      
+      // Update local state
+      setUserProjects(userProjects.filter(p => p.id !== projectId));
+      
+      toast({
+        title: "Project deleted",
+        description: `"${projectName}" has been deleted.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error deleting project",
+        description: "Could not delete the project. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Add report to a project (placeholder logic)
   const handleAddReportToProject = (projectId: string) => {
-    // In a real app, show a dialog to select/upload a report, then update the project
+    // Get available reports from session storage
+    const reports = SessionStorageManager.getReports();
+    
+    if (reports.length === 0) {
+      toast({
+        title: 'No reports available',
+        description: 'Create some reports first by comparing documents.',
+      });
+      return;
+    }
+
+    // For now, just show a message. In a real implementation, you'd show a dialog to select reports
     toast({
       title: 'Add Report',
-      description: `This would open a dialog to add a report to project ${projectId}.`,
+      description: `You have ${reports.length} reports available. Feature coming soon!`,
     });
   };
 

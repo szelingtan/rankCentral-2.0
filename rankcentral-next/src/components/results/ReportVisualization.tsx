@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import ExportTab from './ExportTab';
 import ApiClient from '@/lib/comparison/apiClient';
 import { ReportData } from '@/lib/types';
+import { SessionStorageManager } from '@/lib/sessionStorage';
 
 interface RankingData {
   name: string;
@@ -219,41 +220,49 @@ const ReportVisualization = ({ timestamp, reportName, documents, reportId }: Rep
   const handleExportCSV = async () => {
     setIsLoading(true);
     try {
-      // Use the existing endpoint to download the report
-      apiClient.downloadReport(reportId)
-      .then((blob: Blob) => {
-        // Create a safe name for the download file
-        const safeReportName = reportName 
-          ? reportName.replace(/[^a-z0-9]/gi, '_').toLowerCase()
-          : `report_${reportId}`;
-        
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `${safeReportName}.zip`);
-        document.body.appendChild(link);
-        link.click();
-        
-        // Cleanup
-        setTimeout(() => {
-          link.parentNode?.removeChild(link);
-          window.URL.revokeObjectURL(url);
-        }, 100);
-      })
-      .catch((error: Error) => {
-        console.error('Error downloading report:', error);
-        throw error;
-      });
+      // Get report data from session storage
+      const sessionReport = SessionStorageManager.getReport(reportId);
+      
+      if (!sessionReport) {
+        throw new Error('Report not found in session storage');
+      }
+
+      // Use the createZipFromReportData utility function
+      const { createZipFromReportData } = await import('@/lib/utils/report-utils');
+      const zipBlob = await createZipFromReportData(sessionReport);
+      
+      if (!zipBlob) {
+        throw new Error('Failed to create ZIP file');
+      }
+
+      // Create a safe name for the download file
+      const safeReportName = reportName 
+        ? reportName.replace(/[^a-z0-9]/gi, '_').toLowerCase()
+        : `report_${reportId.substring(0, 8)}`;
+      
+      // Download the ZIP file
+      const url = window.URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${safeReportName}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      setTimeout(() => {
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
       
       toast({
         title: "Download started",
-        description: "Your CSV export has been initiated.",
+        description: "Your CSV export has been generated and downloaded.",
       });
     } catch (error) {
-      console.error('Error downloading CSV:', error);
+      console.error('Error generating CSV export:', error);
       toast({
         title: "Download failed",
-        description: "Could not download the CSV files. Please try again later.",
+        description: "Could not generate the CSV files. Please try again.",
         variant: "destructive",
       });
     } finally {

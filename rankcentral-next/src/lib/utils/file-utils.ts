@@ -2,8 +2,6 @@
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { nanoid } from 'nanoid';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth'; // Need to set up api/auth/
 
 /**
  * Converts a File object to a Base64 string
@@ -59,36 +57,31 @@ export async function getUploadDir() {
 	return uploadDir;
 }
 
-export async function getUserUploadDir() {
-	// Get the current user session
-	const session = await getServerSession(authOptions);
-	if (!session?.user?.id) {
-		throw new Error('User not authenticated');
-	}
+export async function getSessionUploadDir() {
+	// Get a simple session-based upload directory
+	const sessionId = 'session-' + Date.now();
+	const sessionDir = join(await getUploadDir(), sessionId);
 
-	const userId = session.user.id;
-	const userDir = join(await getUploadDir(), userId);
-
-	// Ensure user directory exists
+	// Ensure session directory exists
 	try {
-		await mkdir(userDir, { recursive: true });
+		await mkdir(sessionDir, { recursive: true });
 	} catch (error) {
-		console.error('Error creating user directory:', error);
+		console.error('Error creating session directory:', error);
 	}
 
-	return userDir;
+	return sessionDir;
 }
 
 export async function savePDF(file: File): Promise<string> {
 	try {
-		const userDir = await getUserUploadDir();
+		const sessionDir = await getSessionUploadDir();
 
 		// Generate a unique filename
 		const fileId = nanoid();
 		const originalName = file.name;
 		const extension = originalName.split('.').pop() || 'pdf';
 		const filename = `${fileId}.${extension}`;
-		const filepath = join(userDir, filename);
+		const filepath = join(sessionDir, filename);
 
 		// Convert the file to a buffer
 		const arrayBuffer = await file.arrayBuffer();
@@ -97,7 +90,7 @@ export async function savePDF(file: File): Promise<string> {
 		// Write the file
 		await writeFile(filepath, buffer);
 
-		// Return the path relative to the user directory
+		// Return the path relative to the session directory
 		return filename;
 	} catch (error: any) {
 		console.error('Error saving PDF:', error);
@@ -117,19 +110,19 @@ export async function readBase64PDF(base64Content: string): Promise<Buffer> {
 
 export async function saveBase64PDF(base64Content: string, filename: string): Promise<string> {
 	try {
-		const userDir = await getUserUploadDir();
+		const sessionDir = await getSessionUploadDir();
 
 		// Generate a unique filename
 		const fileId = nanoid();
 		const extension = filename.split('.').pop() || 'pdf';
 		const newFilename = `${fileId}.${extension}`;
-		const filepath = join(userDir, newFilename);
+		const filepath = join(sessionDir, newFilename);
 
 		// Decode and save the file
 		const buffer = await readBase64PDF(base64Content);
 		await writeFile(filepath, buffer);
 
-		// Return the path relative to the user directory
+		// Return the path relative to the session directory
 		return newFilename;
 	} catch (error: any) {
 		console.error('Error saving base64 PDF:', error);

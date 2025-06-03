@@ -20,6 +20,7 @@ export class CriterionEvaluator {
 		try {
 			const openai = new OpenAI({
 				apiKey: this.openaiApiKey,
+				dangerouslyAllowBrowser: true, // Allow API key override
 			});
 
 			console.log(`Sending prompt to ${this.modelName} (first 4 chars of API key: ${this.openaiApiKey.slice(0, 4)}...)`);

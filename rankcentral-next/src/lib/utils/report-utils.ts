@@ -1,6 +1,5 @@
 // src/lib/utils/report-utils.ts
 
-import { v4 as uuidv4 } from 'uuid';
 import JSZip from 'jszip';
 
 /**
@@ -8,7 +7,7 @@ import JSZip from 'jszip';
  * @returns A unique report ID
  */
 export function getReportId(): string {
-	return uuidv4();
+	return crypto.randomUUID();
 }
 
 /**

@@ -16,7 +16,6 @@ import CriteriaForm from '@/components/documents/CriteriaForm';
 import ReportNameInput from '@/components/documents/ReportNameInput';
 import { EvaluationMethod } from '@/lib/comparison';
 import { useRouter } from 'next/navigation';
-import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
 
 type Document = {
@@ -161,7 +160,7 @@ const Documents = () => {
       await Promise.all(files.map(async (file, index) => {
         if (file.type === 'application/pdf') {
           const base64Content = await fileToBase64(file);
-          const currDocId = docId || uuidv4(); // Ensure unique ID for each file
+          const currDocId = docId || crypto.randomUUID(); // Ensure unique ID for each file
   
           updateDocument(currDocId, 'content', base64Content);
   
@@ -250,6 +249,29 @@ const Documents = () => {
       console.log(response)
       
       if (response.success) {
+        // Save the report to session storage
+        const { SessionStorageManager } = await import('@/lib/sessionStorage');
+        
+        // Create a report object that matches the SessionReport interface
+        const reportData = (response as any).report_data || {};
+        const sessionReport = {
+          _id: reportData._id || Date.now().toString(),
+          report_id: reportData.report_id || Date.now().toString(),
+          timestamp: reportData.timestamp || new Date().toISOString(),
+          documents: reportData.documents || documents.map(d => d.displayName || d.id),
+          top_ranked: reportData.top_ranked || (response as any).ranked_documents?.[0] || '',
+          csv_files: reportData.csv_files || [],
+          criteria_count: reportData.criteria_count || (evaluationMethod === 'criteria' ? (useCustomCriteria ? criteria : defaultCriteria).length : 0),
+          evaluation_method: reportData.evaluation_method || evaluationMethod,
+          custom_prompt: reportData.custom_prompt || (evaluationMethod === 'prompt' ? customPrompt : ''),
+          report_name: reportData.report_name || comparisonOptions.reportName,
+          api_key_status: reportData.api_key_status || 'Valid API key',
+          ranking: reportData.ranking || (response as any).ranked_documents || []
+        };
+        
+        // Save the report using SessionStorageManager
+        SessionStorageManager.saveReport(sessionReport);
+        
         showUniqueToast('Analysis complete. Your comparison report is ready.', 'success');
         router.push(`/results`);
       }

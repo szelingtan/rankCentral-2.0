@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -73,35 +72,26 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
 
     setIsUpdating(true);
     try {
-      const response = await fetch('/api/reports/update-name', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          reportId: reportId,
-          timestamp: timestamp,
-          newName: trimmedName,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to update report name');
-      }
-
-      if (result.success) {
-        onRenameReport(timestamp, trimmedName);
-        toast.success("Report name updated successfully");
-        setEditingName(null);
-        setNewName('');
-      } else {
-        toast.error(result.error || "Failed to update report name");
-      }
+      // Update the report name in session storage directly
+      const sessionReports = JSON.parse(sessionStorage.getItem('rankcentral_reports') || '[]');
+      const updatedReports = sessionReports.map((report: any) =>
+        report.timestamp === timestamp || report.report_id === reportId
+          ? { ...report, report_name: trimmedName }
+          : report
+      );
+      
+      // Save back to session storage
+      sessionStorage.setItem('rankcentral_reports', JSON.stringify(updatedReports));
+      
+      // Update the parent component
+      onRenameReport(timestamp, trimmedName);
+      toast.success("Report name updated successfully");
+      setEditingName(null);
+      setNewName('');
+      
     } catch (error) {
       console.error('Error updating report name:', error);
-      toast.error(error instanceof Error ? error.message : "An error occurred while updating the report name");
+      toast.error("An error occurred while updating the report name");
     } finally {
       setIsUpdating(false);
     }

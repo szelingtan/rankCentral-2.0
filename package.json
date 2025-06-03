@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@types/uuid": "^10.0.0",
     "bcrypt": "^6.0.0",
     "datepicker": "^0.0.0",
     "gpt-tokenizer": "^2.9.0",
@@ -8,7 +9,8 @@
     "mongoose": "^8.14.2",
     "openai": "^4.98.0",
     "react": "^19.1.0",
-    "react-day-picker": "^9.6.7"
+    "react-day-picker": "^9.6.7",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/jszip": "^3.4.0"

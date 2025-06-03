@@ -7,11 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
-import ApiClient from '@/lib/comparison/apiClient';  // Import the class
 import Link from 'next/link';
-
-// Create an instance of the ApiClient
-const apiClient = new ApiClient();
+import { SessionStorageManager, SessionReport } from '@/lib/sessionStorage';
 
 type EvaluationReport = {
   reportId: string;
@@ -25,41 +22,33 @@ type EvaluationReport = {
   reportName?: string;
 };
 
-// Define API URL for the backend connection message
-const apiUrl = typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:8000` : 'http://localhost:8000';
-
 const Results = () => {
   const [pastReports, setPastReports] = useState<EvaluationReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [backendError, setBackendError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const apiClient = new ApiClient(); // Create an instance of the API client
   const { toast: uiToast } = useToast();
 
   const fetchReports = async () => {
     setIsLoading(true);
-    setBackendError(null);
+    setError(null);
     
     try {
-      // Make a fetch request to our Next.js API endpoint
-      const response = await apiClient.getReportHistory();
-
-      console.log('pastReports response:', response);
+      // Get reports from session storage
+      const sessionReports = SessionStorageManager.getReports();
       
-      const data = response.reports || [];
-      
-      // Make sure each report has the correct document format
-      const formattedReports = Array.isArray(data) 
-        ? data.map((report: any) => ({
-            ...report,
-            // Ensure documents array is complete
-            documents: Array.isArray(report.documents) ? report.documents : [],
-            // Ensure top_ranked is a string
-            topRanked: report.topRanked || '',
-            // Include report name if available
-            reportName: report.reportName || ''
-          }))
-        : [];
+      // Convert session reports to the expected format
+      const formattedReports: EvaluationReport[] = sessionReports.map((report: SessionReport) => ({
+        reportId: report.report_id,
+        timestamp: report.timestamp,
+        documents: report.documents || [],
+        topRanked: report.top_ranked || '',
+        reportPath: '', // Not used with session storage
+        criteriaCount: report.criteria_count || 0,
+        evaluationMethod: report.evaluation_method || 'criteria',
+        customPrompt: report.custom_prompt,
+        reportName: report.report_name || 'Comparison Report'
+      }));
 
       setPastReports(formattedReports);
       
@@ -71,24 +60,15 @@ const Results = () => {
         });
       }
     } catch (error: any) {
-      console.error('Error fetching reports:', error);
+      console.error('Error fetching reports from session storage:', error);
       setPastReports([]);
       
-      // Create a more user-friendly error message
-      let errorMessage = error.message || "Unknown error";
-      
-      // Add debugging info to the console
-      console.debug('Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
-      
-      setBackendError(`Error loading reports: ${errorMessage}`);
-      toast.error('Error loading reports from the backend.');
+      const errorMessage = "Failed to load reports from session storage";
+      setError(errorMessage);
+      toast.error('Error loading reports.');
       uiToast({
         title: "Unable to load reports",
-        description: `There was an error loading reports. Please try again later.`,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -97,12 +77,24 @@ const Results = () => {
   };
 
   const handleRenameReport = (timestamp: string, newName: string) => {
-    const updatedReports = pastReports.map(report =>
+    // Update the report name in session storage
+    const sessionReports = SessionStorageManager.getReports();
+    const updatedReports = sessionReports.map(report =>
+      report.timestamp === timestamp
+        ? { ...report, report_name: newName }
+        : report
+    );
+    
+    // Save back to session storage
+    sessionStorage.setItem('rankcentral_reports', JSON.stringify(updatedReports));
+    
+    // Update local state
+    const updatedLocalReports = pastReports.map(report =>
       report.timestamp === timestamp
         ? { ...report, reportName: newName }
         : report
     );
-    setPastReports(updatedReports);
+    setPastReports(updatedLocalReports);
   };
 
   useEffect(() => {
@@ -116,8 +108,8 @@ const Results = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Report History</h1>
             <div className="flex mt-2">
-              <Link href="/projects" className="text-brand-primary hover:underline flex items-center gap-1">
-                <span>View Projects</span>
+              <Link href="/documents" className="text-brand-primary hover:underline flex items-center gap-1">
+                <span>Create New Report</span>
               </Link>
             </div>
           </div>
@@ -132,13 +124,10 @@ const Results = () => {
           </Button>
         </div>
 
-        {backendError && (
+        {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-6 rounded relative" role="alert">
-            <strong className="font-bold">Error loading reports: </strong>
-            <span className="block sm:inline">{backendError}</span>
-            <p className="mt-2 font-medium">Possible issues:</p>
-            <p className="mt-1">1. Connection to database might be failing</p>
-            <p className="mt-1">2. You might need to refresh your session</p>
+            <strong className="font-bold">Error: </strong>
+            <span className="block sm:inline">{error}</span>
             <Button
               variant="outline"
               size="sm"
@@ -159,10 +148,15 @@ const Results = () => {
             </div>
           ) : pastReports.length > 0 ? (
             <PastReports reports={pastReports} onRenameReport={handleRenameReport}/>
-          ) : !backendError ? (
+          ) : !error ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
               <p className="text-lg text-gray-600">No comparison reports found</p>
               <p className="text-gray-500 mt-2">Compare some documents to generate reports</p>
+              <Link href="/documents" className="mt-4 inline-block">
+                <Button className="bg-brand-primary hover:bg-brand-dark">
+                  Start Comparing Documents
+                </Button>
+              </Link>
             </div>
           ) : null}
         </div>

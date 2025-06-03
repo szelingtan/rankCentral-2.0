@@ -7,9 +7,7 @@ import React from 'react';
 import Link from 'next/link';
 import RankCentralLogo from './RankCentralLogo';
 import { Button } from '@/components/ui/button';
-import { BarChart3, FileText, Settings, Home, GitCompare, HelpCircle, LogOut } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { BarChart3, FileText, Settings, Home, GitCompare, HelpCircle } from 'lucide-react';
 
 /**
  * Props interface for the Layout component.
@@ -23,27 +21,12 @@ interface LayoutProps {
 /**
  * Main application layout component with sidebar navigation.
  * Provides responsive navigation structure with sidebar for desktop and mobile header.
- * Includes user authentication status and logout functionality.
  * 
  * @component
  * @param {LayoutProps} props - Component props
  * @returns {JSX.Element} Layout structure with navigation and content area
  */
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, logout } = useAuth();
-  const { toast } = useToast();
-
-  /**
-   * Handles user logout with toast notification.
-   */
-  const handleLogout = () => {
-    logout();
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
-  };
-
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
@@ -99,22 +82,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </Link>
           </div>
         </nav>
-        {user && (
-          <div className="p-4 border-t border-gray-200">
-            <div className="flex flex-col items-start space-y-2">
-              <div className="text-sm font-medium">{user.email}</div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleLogout} 
-                className="flex w-full items-center justify-center gap-1.5 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 transition-all duration-200 py-1 h-8"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                <span>Sign Out</span>
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Mobile header */}
@@ -143,17 +110,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <HelpCircle className="h-5 w-5" />
             </Link>
           </Button>
-          {user && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleLogout} 
-              className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 transition-all duration-200 p-0 h-7 w-7"
-              title="Sign Out"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-            </Button>
-          )}
         </div>
       </div>
 

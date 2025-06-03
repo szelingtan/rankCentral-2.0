@@ -14,6 +14,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { formatTimestamp, downloadFile } from '@/lib/utils/report-utils';
 import { ComparisonResultResponse, ComparisonResult } from '@/lib/comparison/types';
+import { SessionStorageManager } from '@/lib/sessionStorage';
 
 interface ComparisonResultsProps {
 	results: ComparisonResultResponse;
@@ -29,16 +30,27 @@ export function ComparisonResults({ results }: ComparisonResultsProps) {
 
 	const handleDownload = async (): Promise<void> => {
 		try {
-			const response = await fetch(`/api/reports/download/${report_id}`);
-			if (!response.ok) {
-				throw new Error('Failed to download report');
+			// Get report data from session storage
+			const sessionReport = SessionStorageManager.getReport(report_id);
+			
+			if (!sessionReport) {
+				console.error('Report not found in session storage');
+				return;
 			}
 
-			const blob = await response.blob();
+			// Use the createZipFromReportData utility function
+			const { createZipFromReportData } = await import('@/lib/utils/report-utils');
+			const zipBlob = await createZipFromReportData(sessionReport);
+			
+			if (!zipBlob) {
+				console.error('Failed to create ZIP file');
+				return;
+			}
+
 			const reportName = `document-comparison-${report_id.substring(0, 8)}.zip`;
-			downloadFile(blob, reportName);
+			downloadFile(zipBlob, reportName);
 		} catch (error) {
-			console.error('Error downloading report:', error);
+			console.error('Error generating download:', error);
 		}
 	};
 

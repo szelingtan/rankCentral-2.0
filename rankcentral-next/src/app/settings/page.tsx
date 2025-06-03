@@ -1,264 +1,229 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Eye, EyeOff, User, Lock, Shield, Keyboard } from 'lucide-react';
+import { Trash2, Download, Upload, Database, Shield, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { SessionStorageManager } from '@/lib/sessionStorage';
 
 export default function SettingsPage() {
-  const { data: session } = useSession();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Password fields
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [sessionData, setSessionData] = useState<any>(null);
 
-  // Handle password change submission
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast({
-        title: "Missing fields",
-        description: "Please fill in all password fields",
-        variant: "destructive"
-      });
+  useEffect(() => {
+    loadSessionData();
+  }, []);
+
+  const loadSessionData = () => {
+    const data = SessionStorageManager.exportData();
+    setSessionData(data);
+  };
+
+  const handleClearData = async () => {
+    if (!confirm('Are you sure you want to clear all your session data? This cannot be undone.')) {
       return;
     }
-
-    if (newPassword !== confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "New password and confirmation must match",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
 
     try {
-      // Send request to change password
-      const response = await fetch('/api/user/change-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to change password');
-      }
-
-      // Clear form fields
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-
+      SessionStorageManager.clearAll();
+      loadSessionData();
       toast({
-        title: "Password updated",
-        description: "Your password has been changed successfully",
+        title: "Data cleared",
+        description: "All session data has been cleared successfully",
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
-        title: "Error changing password",
-        description: error.message || "Please check your current password and try again",
+        title: "Error",
+        description: "Failed to clear session data",
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
     }
+  };
+
+  const handleExportData = () => {
+    try {
+      const data = SessionStorageManager.exportData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rankcentral-data-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Data exported",
+        description: "Your session data has been downloaded",
+      });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: "Failed to export session data",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        SessionStorageManager.importData(data);
+        loadSessionData();
+        toast({
+          title: "Data imported",
+          description: "Your session data has been imported successfully",
+        });
+      } catch (error) {
+        toast({
+          title: "Import failed",
+          description: "Failed to import data. Please check the file format.",
+          variant: "destructive"
+        });
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
     <Layout>
       <div className="container mx-auto max-w-4xl px-4">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Settings</h1>
-        <p className="text-gray-600 mb-6">Manage your account settings and preferences</p>
+        <p className="text-gray-600 mb-6">Manage your session data and preferences</p>
         
-        <Tabs defaultValue="password" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="password" className="flex items-center">
-              <Lock className="mr-2 h-4 w-4" />
-              Security
+        <Tabs defaultValue="data" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="data" className="flex items-center">
+              <Database className="mr-2 h-4 w-4" />
+              Session Data
             </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center">
-              <User className="mr-2 h-4 w-4" />
-              Profile
-            </TabsTrigger>
-            <TabsTrigger value="preferences" className="flex items-center">
-              <Keyboard className="mr-2 h-4 w-4" />
-              Preferences
+            <TabsTrigger value="privacy" className="flex items-center">
+              <Shield className="mr-2 h-4 w-4" />
+              Privacy
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="password">
-            <Card>
-              <CardHeader>
-                <CardTitle>Change Password</CardTitle>
-                <CardDescription>
-                  Update your password to keep your account secure
-                </CardDescription>
-              </CardHeader>
-              <form onSubmit={handlePasswordChange}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="currentPassword">Current Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="currentPassword"
-                        type={showCurrentPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        disabled={isLoading}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                        tabIndex={-1}
-                      >
-                        {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
+          <TabsContent value="data">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Session Data Management</CardTitle>
+                  <CardDescription>
+                    View and manage your locally stored data. All data is stored in your browser session.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="text-center p-4 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-brand-primary">
+                          {sessionData?.documents?.length || 0}
+                        </div>
+                        <div className="text-sm text-gray-600">Documents</div>
+                      </div>
+                      <div className="text-center p-4 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-brand-primary">
+                          {sessionData?.reports?.length || 0}
+                        </div>
+                        <div className="text-sm text-gray-600">Reports</div>
+                      </div>
+                      <div className="text-center p-4 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-brand-primary">
+                          {sessionData?.projects?.length || 0}
+                        </div>
+                        <div className="text-sm text-gray-600">Projects</div>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="newPassword">New Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="newPassword"
-                        type={showNewPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
+                    
+                    <Separator />
+                    
+                    <div className="flex flex-wrap gap-3">
+                      <Button onClick={handleExportData} variant="outline">
+                        <Download className="mr-2 h-4 w-4" />
+                        Export Data
+                      </Button>
+                      
+                      <div className="relative">
+                        <input
+                          type="file"
+                          id="import-data"
+                          accept=".json"
+                          onChange={handleImportData}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <Button variant="outline">
+                          <Upload className="mr-2 h-4 w-4" />
+                          Import Data
+                        </Button>
+                      </div>
+                      
+                      <Button 
+                        onClick={handleClearData} 
+                        variant="destructive"
                         disabled={isLoading}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                        tabIndex={-1}
                       >
-                        {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Clear All Data
+                      </Button>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        disabled={isLoading}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                        tabIndex={-1}
-                      >
-                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Password must be at least 6 characters long
-                    </p>
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-end">
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? "Updating..." : "Change Password"}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
+              </Card>
+            </div>
           </TabsContent>
           
-          <TabsContent value="profile">
+          <TabsContent value="privacy">
             <Card>
               <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
+                <CardTitle>Privacy & Security</CardTitle>
                 <CardDescription>
-                  Update your account information
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      value={session?.user?.email || ''} 
-                      disabled
-                      className="bg-gray-50"
-                    />
-                    <p className="text-xs text-gray-500">
-                      Your email address cannot be changed
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      placeholder="Your name"
-                      defaultValue={session?.user?.name || ''}
-                      disabled={true}
-                      className="bg-gray-50"
-                    />
-                    <p className="text-xs text-gray-500">
-                      Name editing will be available soon
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="preferences">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Preferences</CardTitle>
-                <CardDescription>
-                  Customize your experience with rankCentral
+                  Information about how your data is handled
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-gray-500 text-center py-8">
-                  Preference settings will be available in a future update
-                </p>
+                <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg">
+                  <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <h3 className="font-medium text-blue-900">Local Storage Only</h3>
+                    <p className="text-sm text-blue-700 mt-1">
+                      All your documents and reports are stored locally in your browser session. 
+                      No data is sent to external servers or databases.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-lg">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                  <div>
+                    <h3 className="font-medium text-amber-900">Session-Based Storage</h3>
+                    <p className="text-sm text-amber-700 mt-1">
+                      Your data will be automatically cleared when you close your browser. 
+                      Use the export feature to save your data permanently.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg">
+                  <Database className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div>
+                    <h3 className="font-medium text-green-900">No Account Required</h3>
+                    <p className="text-sm text-green-700 mt-1">
+                      This application doesn't require user accounts or authentication. 
+                      You can use it anonymously without providing any personal information.
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

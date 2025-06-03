@@ -1,59 +1,30 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { connectToDatabase } from '@/lib/db/mongodb';
-import { ObjectId } from 'mongodb';
 
 /**
- * GET /api/reports/[reportId] - Get detailed data for a specific report
+ * GET /api/reports/[reportId] - Simple endpoint that instructs client to use session storage
+ * This endpoint no longer connects to databases or requires authentication.
+ * All report data is now stored in browser session storage.
  */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ reportId: string }> }
 ) {
   try {
-    // Get the user session
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "You must be logged in to view report details" },
-        { status: 401 }
-      );
-    }
-    
-    // Await params before accessing its properties (Next.js 15 requirement)
     const { reportId } = await params;
-    
-    // Connect to the database
-    const { db } = await connectToDatabase();
-    
-    // Find the report using report_id (UUID string) instead of ObjectId
-    const report = await db.collection('reports').findOne({
-      report_id: reportId,
-      user_id: session.user.id
-    });
-    
-    if (!report) {
-      return NextResponse.json(
-        { error: "Report not found" },
-        { status: 404 }
-      );
-    }
-    
-    // Return the report data
+
     return NextResponse.json({
-      success: true,
-      report: report
+      success: false,
+      message: "Reports are now stored in session storage. Please check your browser's session storage for report data.",
+      reportId: reportId,
+      instruction: "Use SessionStorageManager.getReport() to retrieve report data from session storage"
     });
-    
   } catch (error) {
-    console.error('Error fetching report details:', error);
+    console.error('Error in report API:', error);
     return NextResponse.json(
       { 
-        success: false,
-        error: "Failed to fetch report details",
-        details: error instanceof Error ? error.message : String(error)
+        success: false, 
+        error: 'Report retrieval error',
+        message: "Reports are stored in session storage. Use SessionStorageManager.getReport() instead."
       },
       { status: 500 }
     );
@@ -61,94 +32,32 @@ export async function GET(
 }
 
 /**
- * PATCH /api/reports/[reportId] - Update report details (e.g., name)
+ * PATCH /api/reports/[reportId] - Update report details (now uses session storage)
+ * This endpoint instructs clients to update reports in session storage instead.
  */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ reportId: string }> }
 ) {
   try {
-    // Get the user session
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "You must be logged in to update reports" },
-        { status: 401 }
-      );
-    }
-    
-    // Await params before accessing its properties (Next.js 15 requirement)
     const { reportId } = await params;
-    
     const body = await request.json();
-    const { reportName } = body;
-
-    // Validate input
-    if (!reportName || typeof reportName !== 'string' || reportName.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Report name is required and must be a non-empty string" },
-        { status: 400 }
-      );
-    }
-
-    // Sanitize the report name
-    const sanitizedName = reportName.trim().substring(0, 100); // Limit to 100 characters
     
-    // Connect to the database
-    const { db } = await connectToDatabase();
-    
-    // Try to find by report_id field first
-    let updateResult = await db.collection('reports').updateOne(
-      {
-        report_id: reportId,
-        user_id: session.user.id
-      },
-      {
-        $set: {
-          report_name: sanitizedName,
-          last_updated: new Date()
-        }
-      }
-    );
-
-    // If not found by report_id, try by _id if it's a valid ObjectId
-    if (updateResult.matchedCount === 0 && ObjectId.isValid(reportId)) {
-      updateResult = await db.collection('reports').updateOne(
-        {
-          _id: new ObjectId(reportId),
-          user_id: session.user.id
-        },
-        {
-          $set: {
-            report_name: sanitizedName,
-            last_updated: new Date()
-          }
-        }
-      );
-    }
-
-    if (updateResult.matchedCount === 0) {
-      return NextResponse.json(
-        { error: "Report not found or you don't have permission to update it" },
-        { status: 404 }
-      );
-    }
-    
-    // Return success response
     return NextResponse.json({
-      success: true,
-      message: "Report updated successfully",
-      reportName: sanitizedName
+      success: false,
+      message: "Report updates are now handled in session storage. Use SessionStorageManager.updateReport() to update report data.",
+      reportId: reportId,
+      instruction: "Use SessionStorageManager.updateReport() to modify reports in session storage",
+      providedData: body
     });
     
   } catch (error) {
-    console.error('Error updating report:', error);
+    console.error('Error in report update API:', error);
     return NextResponse.json(
       { 
         success: false,
-        error: "Failed to update report",
-        details: error instanceof Error ? error.message : String(error)
+        error: "Report update error",
+        message: "Reports are stored in session storage. Use SessionStorageManager.updateReport() instead."
       },
       { status: 500 }
     );
