@@ -1,5 +1,7 @@
 // src/app/api/documents/compare/route.ts
 
+import dotenv from 'dotenv';
+
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
@@ -14,6 +16,9 @@ const uploadDir = path.join(process.cwd(), 'tmp', 'uploads');
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
 	try {
+		// Force reload environment variables (equivalent to load_dotenv(override=True))
+		dotenv.config({ override: true });
+		
 		const data = await req.json();
 
 		const criteriaData = data.criteria || [];
@@ -30,6 +35,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 		}
 
 		const apiKey = process.env.OPENAI_API_KEY;
+		
+		// Add debugging to verify the API key is loaded
+		console.log('Environment reload check:');
+		console.log('OPENAI_API_KEY exists:', !!apiKey);
+		console.log('OPENAI_API_KEY length:', apiKey?.length || 0);
+		console.log('OPENAI_API_KEY first 4 chars:', apiKey?.slice(0, 4) || 'NONE');
+		
 		if (!apiKey) {
 			console.error("ERROR: OpenAI API key not found in environment variables");
 			return NextResponse.json(
