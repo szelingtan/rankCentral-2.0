@@ -65,7 +65,7 @@ export default class ApiClient {
 	async compareDocuments(
 		documents: Document[],
 		options: ComparisonOptions
-	): Promise<{ success: boolean; results: ComparisonResult[]; ranking: string[] }> {
+	): Promise<{ success: boolean; results: ComparisonResult[]; ranking: string[]; report_id?: string }> {
 		try {
 			const response = await fetch(`${this.baseUrl}/documents/compare-documents`, {
 				method: 'POST',

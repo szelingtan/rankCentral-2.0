@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import mongoose from 'mongoose';
 import { Project } from '@/models/Project';
-import { connectToDatabase } from '@/lib/db/mongodb';
+import { connectMongoose } from '@/lib/db/mongoose';
+import { authOptions } from '@/lib/auth';
 
 // GET /api/projects - Get all projects for the current user
 export async function GET(request: Request) {
   try {
     // Get the user session
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -17,8 +18,8 @@ export async function GET(request: Request) {
       );
     }
     
-    // Connect to the database
-    await connectToDatabase();
+    // Connect to the database using Mongoose
+    await connectMongoose();
     
     // Get query parameters
     const { searchParams } = new URL(request.url);
@@ -76,7 +77,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     // Get the user session
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -85,8 +86,8 @@ export async function POST(request: Request) {
       );
     }
     
-    // Connect to the database
-    await connectToDatabase();
+    // Connect to the database using Mongoose
+    await connectMongoose();
     
     // Parse the request body
     const body = await request.json();

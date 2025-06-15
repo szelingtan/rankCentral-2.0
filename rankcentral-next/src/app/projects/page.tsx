@@ -11,7 +11,8 @@ import {
   Trash2, 
   Edit, 
   BarChart3,
-  Search
+  Search,
+  Loader2
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -32,67 +33,59 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
-
-// Example projects (for demonstration only)
-const EXAMPLE_PROJECTS = [
-  {
-    id: '1',
-    name: 'Research Paper Evaluation',
-    description: 'Comparing academic research papers for clarity and innovation',
-    createdAt: '2025-05-01T12:00:00Z',
-    lastUpdated: '2025-05-15T14:30:00Z',
-    documentsCount: 5,
-    reportsCount: 2,
-    status: 'active',
-    isExample: true,
-  },
-  {
-    id: '2',
-    name: 'Policy Document Review',
-    description: 'Evaluating policy documents based on comprehensiveness',
-    createdAt: '2025-04-20T09:15:00Z',
-    lastUpdated: '2025-05-10T11:45:00Z',
-    documentsCount: 3,
-    reportsCount: 1,
-    status: 'active',
-    isExample: true,
-  },
-  {
-    id: '3',
-    name: 'Contract Comparison',
-    description: 'Comparing vendor contracts for favorable terms',
-    createdAt: '2025-03-15T08:30:00Z',
-    lastUpdated: '2025-03-17T16:20:00Z',
-    documentsCount: 4,
-    reportsCount: 2,
-    status: 'completed',
-    isExample: true,
-  }
-];
+import { projectsAPI, Project } from '@/lib/api/projects';
 
 export default function ProjectsPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const { toast } = useToast();
   
-  const [userProjects, setUserProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDescription, setNewProjectDescription] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [isCreating, setIsCreating] = useState(false);
 
   // Load projects on component mount
   useEffect(() => {
-    setIsLoading(false); // Only show loading for a moment
-  }, []);
+    if (session?.user) {
+      loadProjects();
+    }
+  }, [session]);
 
-  // Combine example and user projects for display
-  const allProjects = [...userProjects, ...EXAMPLE_PROJECTS];
+  const loadProjects = async () => {
+    try {
+      setIsLoading(true);
+      const response = await projectsAPI.getProjects({
+        status: activeTab === 'all' ? undefined : activeTab,
+        search: searchQuery || undefined,
+      });
+      
+      // Add computed fields for display
+      const projectsWithCounts = response.projects.map(project => ({
+        ...project,
+        documentsCount: project.documents?.length || 0,
+        reportsCount: project.reports?.length || 0,
+      }));
+      
+      setProjects(projectsWithCounts);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+      toast({
+        title: "Error loading projects",
+        description: "Could not load your projects. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Filter projects based on search query and active tab
-  const filteredProjects = allProjects.filter(project => {
+  const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
       project.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTab = activeTab === 'all' || project.status === activeTab;
@@ -121,22 +114,19 @@ export default function ProjectsPage() {
     }
 
     try {
-      setIsLoading(true);
+      setIsCreating(true);
       
-      const newProject = {
-        id: `${Date.now()}`,
+      const newProject = await projectsAPI.createProject({
         name: newProjectName.trim(),
-        description: newProjectDescription.trim() || 'No description provided',
-        createdAt: new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
+        description: newProjectDescription.trim() || undefined,
+      });
+      
+      // Add to local state with computed fields
+      setProjects([{
+        ...newProject,
         documentsCount: 0,
         reportsCount: 0,
-        status: 'active',
-        isExample: false,
-        reports: [],
-      };
-      
-      setUserProjects([newProject, ...userProjects]);
+      }, ...projects]);
       
       setShowNewProjectDialog(false);
       setNewProjectName('');
@@ -146,33 +136,49 @@ export default function ProjectsPage() {
         title: "Project created",
         description: `"${newProjectName}" has been created successfully.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error creating project",
-        description: "Could not create your project. Please try again later.",
+        description: error.message || "Could not create your project. Please try again later.",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsCreating(false);
     }
   };
 
-  const handleDeleteProject = (projectId: string, projectName: string) => {
-    setUserProjects(userProjects.filter(p => p.id !== projectId));
-    
-    toast({
-      title: "Project deleted",
-      description: `"${projectName}" has been deleted.`,
-    });
+  const handleDeleteProject = async (projectId: string, projectName: string) => {
+    try {
+      await projectsAPI.deleteProject(projectId);
+      setProjects(projects.filter(p => p._id !== projectId));
+      
+      toast({
+        title: "Project deleted",
+        description: `"${projectName}" has been deleted.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error deleting project",
+        description: error.message || "Could not delete the project. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  // Add report to a project (placeholder logic)
+  // Add search functionality with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (session?.user) {
+        loadProjects();
+      }
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, activeTab]);
+
+  // Add report to a project
   const handleAddReportToProject = (projectId: string) => {
-    // In a real app, show a dialog to select/upload a report, then update the project
-    toast({
-      title: 'Add Report',
-      description: `This would open a dialog to add a report to project ${projectId}.`,
-    });
+    // Navigate to results page with project context
+    router.push(`/results?projectId=${projectId}`);
   };
 
   return (
@@ -180,7 +186,7 @@ export default function ProjectsPage() {
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Projects</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Projects (In Progress)</h1>
             <p className="text-gray-600">Manage and organize your document comparison projects</p>
           </div>
           <Button 
@@ -242,32 +248,24 @@ export default function ProjectsPage() {
             ))
           ) : filteredProjects.length > 0 ? (
             filteredProjects.map(project => (
-              <Card key={project.id} className="overflow-hidden transition-all hover:shadow-md">
+              <Card key={project._id} className="overflow-hidden transition-all hover:shadow-md">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex justify-between items-start">
                     <div className="text-xl font-semibold truncate pr-2 flex items-center gap-2">
                       {project.name}
-                      {project.isExample && (
-                        <span className="ml-2 px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded">Example</span>
-                      )}
                     </div>
                     <div className="flex space-x-1">
-                      {/* Only allow delete/edit for non-example projects */}
-                      {!project.isExample && (
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-500 hover:text-gray-700">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {!project.isExample && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6 text-gray-500 hover:text-red-500"
-                          onClick={() => handleDeleteProject(project.id, project.name)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-500 hover:text-gray-700">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 text-gray-500 hover:text-red-500"
+                        onClick={() => handleDeleteProject(project._id, project.name)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </CardTitle>
                   <CardDescription className="line-clamp-2 h-10">{project.description}</CardDescription>
@@ -301,19 +299,17 @@ export default function ProjectsPage() {
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <Link href={`/documents?projectId=${project.id}`}>
+                    <Link href={`/documents?projectId=${project._id}`}>
                       <Button variant="ghost" size="sm" className="gap-1">
                         View Project
                         <ArrowRight className="h-3.5 w-3.5" />
                       </Button>
                     </Link>
-                    {/* Add Report button for all projects except examples (disabled for examples) */}
                     <Button 
                       variant="outline" 
                       size="sm" 
                       className="gap-1" 
-                      onClick={() => handleAddReportToProject(project.id)}
-                      disabled={project.isExample}
+                      onClick={() => handleAddReportToProject(project._id)}
                     >
                       Add Report
                     </Button>
@@ -375,8 +371,19 @@ export default function ProjectsPage() {
               <Button variant="outline" onClick={() => setShowNewProjectDialog(false)}>
                 Cancel
               </Button>
-              <Button type="submit" onClick={handleCreateProject} disabled={!newProjectName.trim()}>
-                Create Project
+              <Button 
+                type="submit" 
+                onClick={handleCreateProject} 
+                disabled={!newProjectName.trim() || isCreating}
+              >
+                {isCreating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Project'
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

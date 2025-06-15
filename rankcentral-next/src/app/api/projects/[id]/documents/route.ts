@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import mongoose from 'mongoose';
 import { Project } from '@/models/Project';
-import { connectToDatabase } from '@/lib/db/mongodb';
+import { connectMongoose } from '@/lib/db/mongoose';
 import fs from 'fs';
 import path from 'path';
 
@@ -40,8 +40,8 @@ export async function GET(
     // Await params before accessing its properties (Next.js 15 requirement)
     const { id } = await params;
     
-    // Connect to the database
-    await connectToDatabase();
+    // Connect to the database using Mongoose
+    await connectMongoose();
     
     // Check if the ID is valid
     if (!mongoose.isValidObjectId(id)) {
@@ -98,8 +98,8 @@ export async function POST(
     // Await params before accessing its properties (Next.js 15 requirement)
     const { id } = await params;
     
-    // Connect to the database
-    await connectToDatabase();
+    // Connect to the database using Mongoose
+    await connectMongoose();
     
     // Check if the ID is valid
     if (!mongoose.isValidObjectId(id)) {
@@ -198,8 +198,8 @@ export async function DELETE(
     // Await params before accessing its properties (Next.js 15 requirement)
     const { id } = await params;
     
-    // Connect to the database
-    await connectToDatabase();
+    // Connect to the database using Mongoose
+    await connectMongoose();
     
     // Check if the ID is valid
     if (!mongoose.isValidObjectId(id)) {

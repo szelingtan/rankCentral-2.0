@@ -3,8 +3,9 @@ import { getServerSession } from 'next-auth';
 import mongoose from 'mongoose';
 import { Project } from '@/models/Project';
 import { Report } from '@/models/Report';
-import { connectToDatabase } from '@/lib/db/mongodb';
+import { connectMongoose } from '@/lib/db/mongoose';
 import { ObjectId } from 'mongodb';
+import { authOptions } from '@/lib/auth';
 
 // Define an interface for the project document
 interface ProjectDocument {
@@ -27,7 +28,7 @@ export async function GET(
 ) {
 	try {
 		// Get the user session
-		const session = await getServerSession();
+		const session = await getServerSession(authOptions);
 
 		if (!session?.user?.id) {
 			return NextResponse.json(
@@ -39,8 +40,8 @@ export async function GET(
 		// Await params before accessing its properties (Next.js 15 requirement)
 		const { id } = await params;
 
-		// Connect to the database
-		await connectToDatabase();
+		// Connect to the database using Mongoose
+		await connectMongoose();
 
 		// Check if the ID is valid
 		if (!mongoose.isValidObjectId(id)) {
@@ -93,7 +94,7 @@ export async function PATCH(
 ) {
 	try {
 		// Get the user session
-		const session = await getServerSession();
+		const session = await getServerSession(authOptions);
 
 		if (!session?.user?.id) {
 			return NextResponse.json(
@@ -105,8 +106,8 @@ export async function PATCH(
 		// Await params before accessing its properties (Next.js 15 requirement)
 		const { id } = await params;
 
-		// Connect to the database
-		await connectToDatabase();
+		// Connect to the database using Mongoose
+		await connectMongoose();
 
 		// Check if the ID is valid
 		if (!mongoose.isValidObjectId(id)) {
@@ -175,7 +176,7 @@ export async function DELETE(
 ) {
 	try {
 		// Get the user session
-		const session = await getServerSession();
+		const session = await getServerSession(authOptions);
 
 		if (!session?.user?.id) {
 			return NextResponse.json(
@@ -187,8 +188,8 @@ export async function DELETE(
 		// Await params before accessing its properties (Next.js 15 requirement)
 		const { id } = await params;
 
-		// Connect to the database
-		await connectToDatabase();
+		// Connect to the database using Mongoose
+		await connectMongoose();
 
 		// Check if the ID is valid
 		if (!mongoose.isValidObjectId(id)) {

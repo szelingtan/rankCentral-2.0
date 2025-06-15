@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { FileText, Trash2, ArrowRight, Upload, Shield } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -15,9 +15,11 @@ import ApiClient from '@/lib/comparison/apiClient';
 import CriteriaForm from '@/components/documents/CriteriaForm';
 import ReportNameInput from '@/components/documents/ReportNameInput';
 import { EvaluationMethod } from '@/lib/comparison';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { projectsAPI } from '@/lib/api/projects';
 
 type Document = {
   id: string;
@@ -74,15 +76,43 @@ const Documents = () => {
   // const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [documentNames, setDocumentNames] = useState<Record<string, string>>({});
   const [reportName, setReportName] = useState('');
+  const [currentProject, setCurrentProject] = useState<any>(null);
   
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get('projectId');
   
   const apiClient = new ApiClient('/api');
   const router = useRouter();
   
   useEffect(() => {
-    // checkBackendStatus();
-  }, []);
+    // Load project data if projectId is provided
+    if (projectId) {
+      loadProjectData();
+    }
+  }, [projectId]);
+
+  const loadProjectData = async () => {
+    if (!projectId) return;
+    
+    try {
+      const project = await projectsAPI.getProject(projectId);
+      setCurrentProject(project);
+      setReportName(`${project.name} - Report ${new Date().toLocaleDateString()}`);
+      
+      toast({
+        title: "Project loaded",
+        description: `Working in project: ${project.name}`,
+      });
+    } catch (error: any) {
+      console.error('Error loading project:', error);
+      toast({
+        title: "Error loading project",
+        description: error.message || "Could not load project data.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const showUniqueToast = (message: string, type = 'error') => {
     const toastKey = `${type}:${message}`;
@@ -250,8 +280,20 @@ const Documents = () => {
       console.log(response)
       
       if (response.success) {
-        showUniqueToast('Analysis complete. Your comparison report is ready.', 'success');
-        router.push(`/results`);
+        // If we have a project, add the report to it
+        if (currentProject && response.report_id) {
+          try {
+            await projectsAPI.addReportToProject(currentProject._id, response.report_id);
+            showUniqueToast(`Analysis complete. Report added to project "${currentProject.name}".`, 'success');
+          } catch (error) {
+            console.error('Error adding report to project:', error);
+            showUniqueToast('Analysis complete, but could not add report to project.', 'success');
+          }
+        } else {
+          showUniqueToast('Analysis complete. Your comparison report is ready.', 'success');
+        }
+        
+        router.push(`/results${projectId ? `?projectId=${projectId}` : ''}`);
       }
     } catch (error: any) {
       console.error('Error comparing documents:', error);
@@ -267,7 +309,19 @@ const Documents = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-gray-800">Document Comparison</h1>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Document Comparison</h1>
+          {currentProject && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md font-medium">
+                Project: {currentProject.name}
+              </span>
+              {currentProject.description && (
+                <span className="text-gray-500">- {currentProject.description}</span>
+              )}
+            </div>
+          )}
+        </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8">
@@ -487,4 +541,13 @@ const Documents = () => {
   );
 };
 
-export default Documents;
+// Create a wrapper component with Suspense
+const DocumentsPage = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <Documents />
+    </Suspense>
+  );
+};
+
+export default DocumentsPage;

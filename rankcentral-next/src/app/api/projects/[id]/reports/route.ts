@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth';
 import mongoose from 'mongoose';
 import { Project } from '@/models/Project';
 import { Report } from '@/models/Report';
-import { connectToDatabase } from '@/lib/db/mongodb';
+import { connectMongoose } from '@/lib/db/mongoose';
+import { authOptions } from '@/lib/auth';
 
 // Define an interface for the project document to ensure TypeScript knows about the reports field
 interface ProjectDocument {
@@ -20,7 +21,7 @@ export async function GET(
 	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
-		const session = await getServerSession();
+		const session = await getServerSession(authOptions);
 
 		if (!session?.user?.id) {
 			return NextResponse.json(
@@ -32,7 +33,7 @@ export async function GET(
 		// Await params before accessing its properties (Next.js 15 requirement)
 		const { id } = await params;
 
-		await connectToDatabase();
+		await connectMongoose();
 
 		if (!mongoose.isValidObjectId(id)) {
 			return NextResponse.json(
@@ -82,7 +83,7 @@ export async function POST(
 	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
-		const session = await getServerSession();
+		const session = await getServerSession(authOptions);
 
 		if (!session?.user?.id) {
 			return NextResponse.json(
@@ -94,7 +95,7 @@ export async function POST(
 		// Await params before accessing its properties (Next.js 15 requirement)
 		const { id } = await params;
 
-		await connectToDatabase();
+		await connectMongoose();
 
 		if (!mongoose.isValidObjectId(id)) {
 			return NextResponse.json(
@@ -196,7 +197,7 @@ export async function DELETE(
 	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
-		const session = await getServerSession();
+		const session = await getServerSession(authOptions);
 
 		if (!session?.user?.id) {
 			return NextResponse.json(
@@ -208,7 +209,7 @@ export async function DELETE(
 		// Await params before accessing its properties (Next.js 15 requirement)
 		const { id } = await params;
 
-		await connectToDatabase();
+		await connectMongoose();
 
 		if (!mongoose.isValidObjectId(id)) {
 			return NextResponse.json(

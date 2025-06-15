@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import dayjs from 'dayjs';
 import ReportVisualization from './ReportVisualization';
+import AddToProjectDialog from './AddToProjectDialog';
 
 type Report = {
   reportId: string;
@@ -30,6 +31,8 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
   const [editingName, setEditingName] = useState<string | null>(null);
   const [newName, setNewName] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [showAddToProjectDialog, setShowAddToProjectDialog] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<{ id: string; name: string } | null>(null);
   
   const toggleExpand = (timestamp: string) => {
     if (expandedReport === timestamp) {
@@ -123,7 +126,13 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
     }
   };
 
-  // Function to handle direct navigation to the export tab
+  // Function to handle adding report to project
+  const handleAddToProject = (reportId: string, reportName: string) => {
+    setSelectedReport({ id: reportId, name: reportName || 'Comparison Report' });
+    setShowAddToProjectDialog(true);
+  };
+
+  // Function to handle direct navigation to the export tab (if needed)
   const handleDownloadClick = (timestamp: string) => {
     // First expand the report if it's not already expanded
     if (expandedReport !== timestamp) {
@@ -250,7 +259,7 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
                   variant="outline" 
                   size="sm" 
                   className="gap-1 text-brand-primary border-brand-primary"
-                  onClick={() => handleDownloadClick(report.timestamp)}
+                  onClick={() => handleAddToProject(report.reportId, report.reportName || 'Comparison Report')}
                 >
                   <FolderPlus className="h-4 w-4 mr-1" />
                   Add to Project
@@ -269,6 +278,20 @@ const PastReports = ({ reports, onRenameReport }: PastReportsProps) => {
           </CardContent>
         </Card>
       ))}
+      
+      {/* Add to Project Dialog */}
+      {selectedReport && (
+        <AddToProjectDialog
+          open={showAddToProjectDialog}
+          onOpenChange={setShowAddToProjectDialog}
+          reportId={selectedReport.id}
+          reportName={selectedReport.name}
+          onSuccess={() => {
+            // Optionally refresh the reports list or show success message
+            toast.success('Report added to project successfully');
+          }}
+        />
+      )}
     </div>
   );
 };
