@@ -76,7 +76,7 @@ export class ReportGenerator {
    * @param {string[]} [documentsOrder] - Order of documents from merge sort for unified ranking
    * @returns {CsvFile[]} Array of objects containing filename and CSV content
    */
-  createCsvFiles(reportData: ReportData, folderName: string = "csv_reports", documentsOrder?: string[]): CsvFile[] {
+  createCsvFiles(reportData: ReportData, folderName: string = "csv_reports", documentsOrder?: string[], comparisonResults?: ComparisonResult[]): CsvFile[] {
     try {
       // Input validation
       if (!reportData) {
@@ -117,6 +117,14 @@ export class ReportGenerator {
         csvFiles.push({ 'Condensed Pairwise Comparisons.csv': condensedCsvContent });
       } catch (error) {
         console.error('Error generating condensed pairwise comparisons CSV:', error);
+      }
+
+      // Generate Overall Winners CSV (new)
+      try {
+        const overallWinnersCsvContent = this.exportOverallWinnersToCSV(reportData, comparisonResults);
+        csvFiles.push({ 'Overall Winners by Comparison.csv': overallWinnersCsvContent });
+      } catch (error) {
+        console.error('Error generating overall winners CSV:', error);
       }
       
       // JSON export disabled as per requirements
@@ -214,7 +222,8 @@ export class ReportGenerator {
       'Document B Name',
       'Document B Score',
       'Document B Analysis',
-      'Detailed Reasoning'
+      'Detailed Reasoning',
+      'Criterion Winner'
     ];
     
     let csv = headers.join(',') + '\n';
@@ -255,6 +264,18 @@ export class ReportGenerator {
       // Get the detailed reasoning (may be in different fields depending on data structure)
       const detailedReasoning = row['Detailed Reasoning'] || row['Reasoning'] || row['Comparative Analysis'] || 'No reasoning provided';
 
+      // Determine criterion winner based on scores
+      let criterionWinner = 'Tie';
+      if (docAScore && docBScore) {
+        const scoreA = parseFloat(docAScore.toString());
+        const scoreB = parseFloat(docBScore.toString());
+        if (scoreA > scoreB) {
+          criterionWinner = documentA;
+        } else if (scoreB > scoreA) {
+          criterionWinner = documentB;
+        }
+      }
+
       // Build the row values
       const rowNumber = index + 1;
       const values = [
@@ -266,7 +287,8 @@ export class ReportGenerator {
         this.formatCsvValue(documentB),
         this.formatCsvValue(docBScore),
         this.formatCsvValue(docBAnalysis),
-        this.formatCsvValue(detailedReasoning)
+        this.formatCsvValue(detailedReasoning),
+        this.formatCsvValue(criterionWinner)
       ];
       
       csv += values.join(',') + '\n';
@@ -317,6 +339,155 @@ export class ReportGenerator {
       ];
       csv += values.join(',') + '\n';
     });
+    return csv;
+  }
+
+  /**
+   * Exports overall winner information for each pairwise comparison to CSV format.
+   * Shows the final winner and total weighted scores across all criteria for each comparison.
+   * 
+   * @param {ReportData} reportData - Report data containing comparison results
+   * @param {ComparisonResult[]} [comparisonResults] - Original comparison results with weighted scores
+   * @returns {string} CSV string with overall winner details for each pairwise comparison
+   */
+  exportOverallWinnersToCSV(reportData: ReportData, comparisonResults?: ComparisonResult[]): string {
+    const headers = [
+      'No.',
+      'Document A',
+      'Document B', 
+      'Overall Winner',
+      'Document A Total Score',
+      'Document B Total Score',
+      'Score Difference',
+      'Winner Explanation'
+    ];
+    
+    let csv = headers.join(',') + '\n';
+    
+    // Use actual comparison results if provided, otherwise fall back to reconstructing from criterion details
+    if (comparisonResults && comparisonResults.length > 0) {
+      comparisonResults.forEach((result, index) => {
+        const documentA = result.documentA;
+        const documentB = result.documentB;
+        const winner = result.winner || 'Tie';
+        
+        // Get weighted scores from evaluation details
+        let totalScoreA = 0;
+        let totalScoreB = 0;
+        let explanation = '';
+        
+        if (result.evaluationDetails) {
+          totalScoreA = result.evaluationDetails.overallScores.documentA;
+          totalScoreB = result.evaluationDetails.overallScores.documentB;
+          explanation = result.evaluationDetails.explanation || '';
+        } else {
+          explanation = 'No detailed evaluation available';
+        }
+        
+        const scoreDiff = Math.abs(totalScoreA - totalScoreB);
+        
+        const values = [
+          index + 1,
+          this.formatCsvValue(documentA),
+          this.formatCsvValue(documentB),
+          this.formatCsvValue(winner),
+          this.formatCsvValue(totalScoreA.toFixed(2)),
+          this.formatCsvValue(totalScoreB.toFixed(2)),
+          this.formatCsvValue(scoreDiff.toFixed(2)),
+          this.formatCsvValue(explanation)
+        ];
+        
+        csv += values.join(',') + '\n';
+      });
+      return csv;
+    }
+
+    // Fallback: Extract unique pairwise comparisons from criterionDetails
+    if (!reportData.criterionDetails || reportData.criterionDetails.length === 0) {
+      csv += '1,,,No comparison data available,0,0,0,\n';
+      return csv;
+    }
+
+    // Extract unique pairwise comparisons from criterionDetails
+    const pairwiseComparisons = new Map<string, any>();
+    
+    if (reportData.criterionDetails) {
+      reportData.criterionDetails.forEach(detail => {
+        let documentA = '';
+        let documentB = '';
+        
+        if (detail['Comparison'] && typeof detail['Comparison'] === 'string') {
+          const parts = detail['Comparison'].split(' vs ');
+          if (parts.length === 2) {
+            documentA = parts[0].trim();
+            documentB = parts[1].trim();
+          }
+        } else {
+          documentA = detail['Document A'] || '';
+          documentB = detail['Document B'] || '';
+        }
+        
+        const comparisonKey = `${documentA} vs ${documentB}`;
+        
+        if (!pairwiseComparisons.has(comparisonKey)) {
+          pairwiseComparisons.set(comparisonKey, {
+            documentA,
+            documentB,
+            totalScoreA: 0,
+            totalScoreB: 0,
+            criteriaCount: 0,
+            winner: null,
+            explanation: ''
+          });
+        }
+        
+        const comparison = pairwiseComparisons.get(comparisonKey);
+        if (comparison) {
+          const scoreA = parseFloat(detail['Document A Score']) || 0;
+          const scoreB = parseFloat(detail['Document B Score']) || 0;
+          
+          comparison.totalScoreA += scoreA;
+          comparison.totalScoreB += scoreB;
+          comparison.criteriaCount += 1;
+        }
+      });
+    }
+    
+    // Calculate winners for each pairwise comparison
+    let rowNumber = 1;
+    pairwiseComparisons.forEach((comparison, comparisonKey) => {
+      const { documentA, documentB, totalScoreA, totalScoreB } = comparison;
+      
+      // Determine winner based on total scores
+      let winner = 'Tie';
+      let explanation = '';
+      const scoreDiff = Math.abs(totalScoreA - totalScoreB);
+      
+      if (totalScoreA > totalScoreB) {
+        winner = documentA;
+        explanation = `${documentA} wins with higher total score across all criteria`;
+      } else if (totalScoreB > totalScoreA) {
+        winner = documentB;
+        explanation = `${documentB} wins with higher total score across all criteria`;
+      } else {
+        explanation = 'Documents tied with equal total scores across all criteria';
+      }
+      
+      const values = [
+        rowNumber,
+        this.formatCsvValue(documentA),
+        this.formatCsvValue(documentB),
+        this.formatCsvValue(winner),
+        this.formatCsvValue(totalScoreA.toFixed(2)),
+        this.formatCsvValue(totalScoreB.toFixed(2)),
+        this.formatCsvValue(scoreDiff.toFixed(2)),
+        this.formatCsvValue(explanation)
+      ];
+      
+      csv += values.join(',') + '\n';
+      rowNumber++;
+    });
+    
     return csv;
   }
   
