@@ -68,28 +68,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 			}];
 		}
 
-		const pdfContents: Record<string, string> = {};
-		for (const doc of documentsData) {
-			console.log(doc)
-			const docName = doc.displayName;
-			const docContent = doc.content;
+		// Process documents using the streamlined PDF processor
+		console.log(`\n🔄 Processing ${documentsData.length} documents...`);
+		const documentInputs = documentsData.map((doc: any) => ({
+			displayName: doc.displayName,
+			content: doc.content
+		}));
+		
+		const pdfContents = await pdfProcessor.processDocuments(documentInputs);
 
-			if (
-				docContent.startsWith('data:application/pdf;base64') ||
-				(docContent.length > 100 && !/^[a-zA-Z]/.test(docContent.trim().substring(0, 20)))
-			) {
-				try {
-					console.log(`Processing base64 PDF: ${docName}`);
-					const extractedText = await pdfProcessor.loadBase64PDF(docName, docContent);
-					pdfContents[docName] = extractedText;
-					console.log(`Loaded base64 PDF: ${docName} (${extractedText.length} characters)`);
-				} catch (e) {
-					console.error(`Error processing base64 PDF: ${e}`);
-					pdfContents[docName] = docContent;
-				}
-			} else {
-				pdfContents[docName] = docContent;
-			}
+		console.log(`\n📋 Final document contents summary:`);
+		for (const [name, content] of Object.entries(pdfContents)) {
+			console.log(`  - ${name}: ${content.length} characters`);
 		}
 
 		const comparisonEngine = new ComparisonEngine(

@@ -34,6 +34,7 @@ export function createComparisonEngine(
 	useCustomPrompt = false,
 	modelName = 'gpt-4.1-mini'
 ) {
+	// Create a new PDF processor instance for this comparison
 	const pdfProcessor = new PDFProcessor();
 	return new ComparisonEngine(
 		documents,

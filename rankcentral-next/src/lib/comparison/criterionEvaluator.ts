@@ -22,7 +22,9 @@ export class CriterionEvaluator {
 				apiKey: this.openaiApiKey,
 			});
 
-			console.log(`Sending prompt to ${this.modelName} (first 4 chars of API key: ${this.openaiApiKey.slice(0, 4)}...)`);
+			console.log(`\n🤖 Sending prompt to ${this.modelName} (API key: ${this.openaiApiKey.slice(0, 4)}...${this.openaiApiKey.slice(-4)})`);
+			console.log(`📏 Prompt length: ${prompt.length} characters, Max tokens: ${maxTokens}`);
+			console.log(`📝 Prompt preview (first 500 chars):\n${prompt.substring(0, 500)}...`);
 
 			const response = await openai.chat.completions.create({
 				temperature: 0,
@@ -34,22 +36,33 @@ export class CriterionEvaluator {
 				]
 			});
 
+			console.log(`✅ Received response from ${this.modelName}`);
+
 			let result = response.choices[0].message.content || "";
 			result = result.trim();
 
+			console.log(`📥 Raw LLM response length: ${result.length} characters`);
+			console.log(`📥 Raw LLM response preview:\n${result.substring(0, 300)}...`);
+
 			if (result.includes("```json")) {
 				result = result.split("```json")[1].split("```")[0].trim();
+				console.log(`🔧 Extracted JSON from code block`);
 			} else if (result.includes("```")) {
 				result = result.split("```")[1].split("```")[0].trim();
+				console.log(`🔧 Extracted content from code block`);
 			}
 
 			const jsonStart = result.indexOf('{');
 			const jsonEnd = result.lastIndexOf('}') + 1;
 			if (jsonStart >= 0 && jsonEnd > jsonStart) {
 				result = result.substring(jsonStart, jsonEnd);
+				console.log(`🔧 Extracted JSON object from response`);
 			}
 
+			console.log(`📋 Final JSON to parse:\n${result}`);
+
 			const rawEval = JSON.parse(result);
+			console.log(`✅ Successfully parsed JSON response`);
 			const criterionEval: CriterionEvaluation = {
 				criterionId: rawEval.criterion_id || rawEval.criterionId,
 				criterionName: rawEval.criterion_name || rawEval.criterionName,

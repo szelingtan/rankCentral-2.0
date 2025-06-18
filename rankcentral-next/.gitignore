@@ -43,3 +43,7 @@ next-env.d.ts
 node_modules/
 node_modules
 **/*.node
+
+# test files and directories
+/test/
+test/

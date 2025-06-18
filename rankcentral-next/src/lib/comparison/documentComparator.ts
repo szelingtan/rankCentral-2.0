@@ -32,8 +32,8 @@ export class DocumentComparator {
 	/** @type {string} OpenAI API key for AI-powered evaluations */
 	openaiApiKey: string;
 	
-	/** @type {any} PDF processor instance for document text extraction */
-	pdfProcessor: any;
+	/** @type {PDFProcessor} PDF processor instance for document text extraction */
+	pdfProcessor: PDFProcessor;
 	
 	/** @type {boolean} Flag indicating whether to use custom prompt evaluation */
 	useCustomPrompt: boolean;
@@ -53,7 +53,7 @@ export class DocumentComparator {
 	 * @param {Record<string, string>} documents - Map of document names to text content
 	 * @param {Criterion[]} criteria - Array of evaluation criteria
 	 * @param {string} openaiApiKey - OpenAI API key for AI evaluations
-	 * @param {any} [pdfProcessor=new PDFProcessor()] - PDF processor for text extraction
+	 * @param {PDFProcessor} pdfProcessor - PDF processor for text extraction (must be pre-configured)
 	 * @param {boolean} [useCustomPrompt=false] - Whether to use custom prompt evaluation
 	 * @param {string} [modelName='gpt-4.1-mini'] - AI model to use for evaluations
 	 */
@@ -61,7 +61,7 @@ export class DocumentComparator {
 		documents: Record<string, string>,
 		criteria: Criterion[],
 		openaiApiKey: string,
-		pdfProcessor = new PDFProcessor(),
+		pdfProcessor: PDFProcessor,
 		useCustomPrompt = false,
 		modelName = 'gpt-4.1-mini'
 	) {
@@ -132,29 +132,70 @@ export class DocumentComparator {
 		}
 
 		for (const criterion of this.criteria) {
-			console.log(`Processing criterion: ${criterion.name}`);
+			console.log(`\n🔍 Processing criterion: ${criterion.name} (weight: ${criterion.weight}%)`);
 			const criterionName = criterion.name;
 			const criterionWeight = criterion.weight;
 			const criterionId = criterion.id || '';
 
+			// Get full document content
 			const doc1Content = this.documents[doc1Name];
 			const doc2Content = this.documents[doc2Name];
+
+			console.log(`📄 Document content lengths: ${doc1Name}=${doc1Content?.length || 0} chars, ${doc2Name}=${doc2Content?.length || 0} chars`);
+
+			if (!doc1Content || !doc2Content) {
+				console.error(`❌ Missing document content: ${doc1Name}=${!!doc1Content}, ${doc2Name}=${!!doc2Content}`);
+				continue;
+			}
+
+			if (doc1Content.length < 50 || doc2Content.length < 50) {
+				console.warn(`⚠️  Very short document content detected - possible extraction issue`);
+			}			// For criteria-based evaluation, use full document content
+			// For custom prompts, use full content
+			let doc1Section = doc1Content;
+			let doc2Section = doc2Content;
+
+			console.log(`📋 Using full document content for evaluation`);
+			console.log(`Content lengths: ${doc1Name}=${doc1Section.length} chars, ${doc2Name}=${doc2Section.length} chars`);
+
+			// Log content being sent to LLM (first 200 chars)
+			console.log(`📤 Content being sent to LLM:`);
+			console.log(`  ${doc1Name}: "${doc1Section.substring(0, 200)}..."`);
+			console.log(`  ${doc2Name}: "${doc2Section.substring(0, 200)}..."`);
+
+			// Add validation before sending to LLM
+			if (!doc1Section || doc1Section.trim().length === 0) {
+				console.warn(`⚠️  WARNING: Empty content for ${doc1Name}`);
+			}
+			if (!doc2Section || doc2Section.trim().length === 0) {
+				console.warn(`⚠️  WARNING: Empty content for ${doc2Name}`);
+			}
+
+			console.log(`📊 Content lengths - ${doc1Name}: ${doc1Section.length}, ${doc2Name}: ${doc2Section.length}`);
+
+			// Validate content quality before sending to LLM
+			if (doc1Section.trim().length < 20 || doc2Section.trim().length < 20) {
+				console.error(`❌ Content too short for meaningful evaluation. Skipping criterion: ${criterionName}`);
+				console.log(`❌ ${doc1Name} content length: ${doc1Section.trim().length}`);
+				console.log(`❌ ${doc2Name} content length: ${doc2Section.trim().length}`);
+				continue;
+			}
 
 			let prompt: string;
 			if (this.useCustomPrompt || criterion.isCustomPrompt) {
 				prompt = this.promptGenerator.generateCustomPrompt(
 					doc1Name,
 					doc2Name,
-					doc1Content,
-					doc2Content,
+					doc1Section,
+					doc2Section,
 					criterion.description
 				);
 			} else {
 				prompt = this.promptGenerator.generateCriterionPrompt(
 					doc1Name,
 					doc2Name,
-					doc1Content,
-					doc2Content,
+					doc1Section,
+					doc2Section,
 					criterion
 				);
 			}

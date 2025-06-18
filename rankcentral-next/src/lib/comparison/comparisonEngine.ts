@@ -36,7 +36,7 @@ export class ComparisonEngine {
 	 * @param {Record<string, string>} documents - Map of document names to content
 	 * @param {Criterion[]} criteria - Array of evaluation criteria
 	 * @param {string} openaiApiKey - OpenAI API key
-	 * @param {PDFProcessor} [pdfProcessor=new PDFProcessor()] - PDF processing utility
+	 * @param {PDFProcessor} pdfProcessor - PDF processing utility (must be pre-configured)
 	 * @param {boolean} [useCustomPrompt=false] - Whether to use custom prompt
 	 * @param {string} [modelName='gpt-4.1-mini'] - AI model to use
 	 */
@@ -44,7 +44,7 @@ export class ComparisonEngine {
 		documents: Record<string, string>,
 		criteria: Criterion[],
 		openaiApiKey: string,
-		pdfProcessor = new PDFProcessor(),
+		pdfProcessor: PDFProcessor,
 		useCustomPrompt = false,
 		modelName = 'gpt-4.1-mini'
 	) {
@@ -57,6 +57,16 @@ export class ComparisonEngine {
 
 		// Validate API key
 		this.validateApiKey();
+
+		// Log PDFProcessor state to ensure it's properly configured
+		console.log(`\n🔧 ComparisonEngine initialized:`);
+		console.log(`  Documents: ${Object.keys(documents).length}`);
+		console.log(`  Criteria: ${criteria.length}`);
+		console.log(`  PDFProcessor processed texts: ${Object.keys(pdfProcessor.getAllDocumentTexts()).length} documents`);
+		
+		for (const [docName, content] of Object.entries(documents)) {
+			console.log(`    ${docName}: ${content.length} chars`);
+		}
 
 		// Initialize document comparator
 		this.documentComparator = new DocumentComparator(
