@@ -57,7 +57,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 		const criteriaManager = new CriteriaManager();
 
 		if (evaluationMethod === 'criteria') {
-			criteriaManager.criteria = criteriaData;
+			// Validate and set criteria data
+			if (!criteriaData || criteriaData.length === 0) {
+				console.log("No criteria provided, using default criteria");
+				const defaultCriteria = criteriaManager.getCriteriaFromUser();
+				console.log(`✅ Using ${defaultCriteria.length} default criteria`);
+			} else {
+				console.log(`Setting ${criteriaData.length} custom criteria`);
+				criteriaManager.criteria = criteriaData;
+				// Validate and fix criteria issues
+				const validatedCriteria = criteriaManager.getCriteriaFromUser();
+				console.log(`✅ Validated ${validatedCriteria.length} criteria - total weight: ${validatedCriteria.reduce((sum, c) => sum + c.weight, 0)}%`);
+			}
 		} else {
 			criteriaManager.criteria = [{
 				id: "custom",

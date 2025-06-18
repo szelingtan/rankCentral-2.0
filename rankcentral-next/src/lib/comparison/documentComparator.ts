@@ -133,6 +133,11 @@ export class DocumentComparator {
 
 		for (const criterion of this.criteria) {
 			console.log(`\n🔍 Processing criterion: ${criterion.name} (weight: ${criterion.weight}%)`);
+			console.log(`   Criterion ID: ${criterion.id}`);
+			console.log(`   Custom prompt flag: ${criterion.isCustomPrompt || false}`);
+			console.log(`   Use custom prompt: ${this.useCustomPrompt}`);
+			console.log(`   Has scoring levels: ${!!criterion.scoringLevels}`);
+			
 			const criterionName = criterion.name;
 			const criterionWeight = criterion.weight;
 			const criterionId = criterion.id || '';
@@ -183,6 +188,7 @@ export class DocumentComparator {
 
 			let prompt: string;
 			if (this.useCustomPrompt || criterion.isCustomPrompt) {
+				console.log(`🔧 Using custom prompt generation for criterion: ${criterion.name}`);
 				prompt = this.promptGenerator.generateCustomPrompt(
 					doc1Name,
 					doc2Name,
@@ -191,6 +197,7 @@ export class DocumentComparator {
 					criterion.description
 				);
 			} else {
+				console.log(`🔧 Using criteria-based prompt generation for criterion: ${criterion.name}`);
 				prompt = this.promptGenerator.generateCriterionPrompt(
 					doc1Name,
 					doc2Name,
@@ -199,6 +206,9 @@ export class DocumentComparator {
 					criterion
 				);
 			}
+
+			console.log(`📤 Generated prompt length: ${prompt.length} characters`);
+			console.log(`📤 Prompt preview (first 300 chars):\n${prompt.substring(0, 300)}...`);
 
 			const promptTokens = encode(prompt).length;
 			const maxTokens = Math.max(1000, Math.min(4096 - promptTokens - 50, 1500));

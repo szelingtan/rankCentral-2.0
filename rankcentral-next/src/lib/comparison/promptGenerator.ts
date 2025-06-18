@@ -46,14 +46,16 @@ export class PromptGenerator {
 		`;
 
 		if (criterion.scoringLevels && Object.keys(criterion.scoringLevels).length > 0) {
-			for (const [level, desc] of Object.entries(criterion.scoringLevels)) {
-				let levelNum = level;
-				if (typeof level === 'string' && /^\d+$/.test(level)) {
-					levelNum = parseInt(level, 10).toString();
-				}
-				prompt += `  ${levelNum}: ${desc}\n`;
+			console.log(`Using custom scoring levels for criterion: ${criterion.name}`);
+			// Sort scoring levels numerically for consistent presentation
+			const sortedLevels = Object.entries(criterion.scoringLevels)
+				.sort(([a], [b]) => parseInt(a) - parseInt(b));
+			
+			for (const [level, desc] of sortedLevels) {
+				prompt += `  ${level}: ${desc}\n`;
 			}
 		} else {
+			console.log(`Using default scoring levels for criterion: ${criterion.name}`);
 			prompt += "  1: Poor - Does not meet the criterion requirements\n";
 			prompt += "  2: Fair - Meets some requirements with significant gaps\n";
 			prompt += "  3: Good - Meets most requirements\n";

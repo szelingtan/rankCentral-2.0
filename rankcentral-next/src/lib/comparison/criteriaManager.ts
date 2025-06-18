@@ -95,7 +95,48 @@ export class CriteriaManager {
 			this.criteria = [...this.defaultCriteria];
 			console.log("Using default criteria for document comparison.");
 		}
+		
+		// Validate and normalize criteria
+		this.validateAndFixCriteria();
 		return this.criteria;
+	}
+
+	/**
+	 * Validates and fixes common issues with criteria
+	 */
+	private validateAndFixCriteria(): void {
+		console.log("🔍 Validating criteria...");
+		
+		this.criteria.forEach((criterion, index) => {
+			// Fix missing ID
+			if (!criterion.id) {
+				criterion.id = String(index + 1);
+				console.log(`Fixed missing ID for criterion: ${criterion.name}`);
+			}
+			
+			// Fix missing scoring levels
+			if (!criterion.scoringLevels || Object.keys(criterion.scoringLevels).length === 0) {
+				criterion.scoringLevels = {
+					1: 'Poor - Does not meet the criterion requirements',
+					2: 'Fair - Partially meets some requirements with significant gaps',
+					3: 'Good - Meets most requirements with minor gaps',
+					4: 'Very Good - Fully meets all requirements',
+					5: 'Excellent - Exceeds requirements in meaningful ways'
+				};
+				console.log(`Added default scoring levels for criterion: ${criterion.name}`);
+			}
+			
+			// Validate weight
+			if (typeof criterion.weight !== 'number' || criterion.weight <= 0) {
+				criterion.weight = 25; // Default weight
+				console.log(`Fixed invalid weight for criterion: ${criterion.name}`);
+			}
+		});
+		
+		// Normalize weights to sum to 100
+		this.normalizeCriteriaWeights();
+		
+		console.log(`✅ Validated ${this.criteria.length} criteria`);
 	}
 
 	/**

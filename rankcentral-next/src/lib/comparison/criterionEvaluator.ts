@@ -63,6 +63,13 @@ export class CriterionEvaluator {
 
 			const rawEval = JSON.parse(result);
 			console.log(`✅ Successfully parsed JSON response`);
+			console.log(`📊 Parsing LLM response fields:`, {
+				criterion_name: rawEval.criterion_name || rawEval.criterionName,
+				document_a_score: rawEval.document_a_score || rawEval.documentAScore,
+				document_b_score: rawEval.document_b_score || rawEval.documentBScore,
+				winner: rawEval.winner
+			});
+
 			const criterionEval: CriterionEvaluation = {
 				criterionId: rawEval.criterion_id || rawEval.criterionId,
 				criterionName: rawEval.criterion_name || rawEval.criterionName,
@@ -74,6 +81,13 @@ export class CriterionEvaluator {
 				reasoning: rawEval.reasoning,
 				winner: this.normalizeWinner(rawEval.winner)
 			};
+
+			console.log(`📊 Final parsed evaluation:`, {
+				criterionName: criterionEval.criterionName,
+				documentAScore: criterionEval.documentAScore,
+				documentBScore: criterionEval.documentBScore,
+				winner: criterionEval.winner
+			});
 
 			this.validateCriterionEvaluation(criterionEval);
 			return criterionEval;
